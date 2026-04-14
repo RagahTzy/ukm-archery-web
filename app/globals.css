@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fbff;
+  --foreground: #0f172a;
+  --accent-cyan: #06b6d4;
+  --accent-blue: #0ea5e9;
+  --accent-green: #22c55e;
+  --accent-yellow: #f59e0b;
+  --surface: #ffffff;
+  --surface-muted: #eff6ff;
+  --border-muted: rgba(15, 23, 42, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+@keyframes archeryFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+
+@keyframes arrowFly {
+  0% {
+    transform: translateX(-100px) rotate(-45deg);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100px) rotate(-45deg);
+    opacity: 0;
+  }
+}
+
+.animate-archery-float {
+  animation: archeryFloat 3s ease-in-out infinite;
+}
+
+.animate-arrow-fly {
+  animation: arrowFly 2s ease-in infinite;
+}
