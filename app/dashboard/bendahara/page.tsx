@@ -51,6 +51,9 @@ export default function BendaharaDashboard() {
     if (!p||!['bendahara','admin'].includes(p.role)||p.status!=='approved') router.push('/login')
   },[router])
 
+  const [sudahAbsen, setSudahAbsen] = useState(false)
+  const today = new Date().toISOString().split('T')[0]
+
   const getMembers = useCallback(async () => {
     const {data} = await supabase.from('profiles').select('id,name,email').eq('status','approved').order('name')
     setMembers(data??[])
@@ -352,7 +355,18 @@ export default function BendaharaDashboard() {
         <div style={S.content}>
           <div style={S.pageTitle}>Kelola Keuangan</div>
           <div style={S.pageSub}>Pantau iuran dan kas keuangan UKM</div>
-
+          <div style={{ marginBottom: 16 }}>
+            {sudahAbsen ? (
+              <span style={{ color: 'green', fontWeight: 'bold' }}>✅ Anda sudah absen hari ini</span>
+            ) : (
+              <button 
+                onClick={() => router.push('/dashboard/absen')} // Sesuaikan URL halaman absenmu
+                style={{ background: '#22c55e', color: 'white', padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+              >
+                Absen Sekarang
+              </button>
+            )}
+          </div>
           <div style={S.tabs}>
             <button className={`tab-btn ${activeTab==='kas'?'on':''}`} onClick={()=>setActiveTab('kas')}>💳 Iuran Anggota</button>
             <button className={`tab-btn ${activeTab==='transaksi'?'on':''}`} onClick={()=>setActiveTab('transaksi')}>📊 Kas Umum</button>

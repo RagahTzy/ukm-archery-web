@@ -20,20 +20,33 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState<'all'|'pending'|'approved'|'rejected'>('all')
   const [selMonth, setSelMonth] = useState(now.getMonth()+1)
   const [selYear, setSelYear] = useState(now.getFullYear())
-  
-  // State baru untuk popup foto
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
+
+  const [sudahAbsen, setSudahAbsen] = useState(false)
   
   const selectedMonth = `${selYear}-${String(selMonth).padStart(2,'0')}`
   const router = useRouter()
-  const yearOptions = Array.from({length:10},(_,i)=>now.getFullYear()-5+i)
+  const today = new Date().toISOString().split('T')[0]
 
   const checkAdmin = useCallback(async () => {
     const {data:{user}} = await supabase.auth.getUser()
     if (!user){router.push('/login');return}
     const {data:p} = await supabase.from('profiles').select('role,status').eq('id',user.id).single()
-    if (!p||p.role!=='admin'||p.status!=='approved') router.push('/login')
-  },[router])
+    if (!p||p.role!=='admin'||p.status!=='approved') {
+        router.push('/login')
+        return
+    }
+
+    // CEK APAKAH ADMIN SUDAH ABSEN
+    const { data: absenData } = await supabase.from('attendance').select('*').eq('user_id', user.id).eq('date', today)
+    if (absenData && absenData.length > 0) {
+      setSudahAbsen(true)
+    }
+
+  },[router, today])
+
+  // State baru untuk popup foto
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
+  const yearOptions = Array.from({length:10},(_,i)=>now.getFullYear()-5+i)
 
   const getUsers = useCallback(async () => {
     const {data} = await supabase.from('profiles').select('*').order('name')
@@ -114,6 +127,18 @@ export default function AdminDashboard() {
     content:{maxWidth:1200,margin:'0 auto',padding:'20px 16px'},
     tableWrap:{background:'#ffffff',border:'2px solid rgba(15,23,82,0.35)',borderRadius:20,overflow:'hidden',boxShadow:'0 18px 50px rgba(30,58,138,0.08)'},
     empty:{textAlign:'center' as const,padding:60,color:'#64748b',fontSize:14},
+  }
+
+  const checkAbsenAdmin = async (userId: string) => {
+    const today = new Date().toISOString().split('T')[0]
+    const { data: absen } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('date', today)
+    if (absen && absen.length > 0) {
+      setSudahAbsen(true)
+    }
   }
 
   return (
@@ -219,7 +244,18 @@ export default function AdminDashboard() {
         <div style={S.content}>
           <div style={{fontFamily:"'Playfair Display',serif",fontSize:28,color:'#0f172a',fontWeight:700,marginBottom:4}}>Dashboard Admin</div>
           <div style={{color:'#475569',fontSize:14,marginBottom:28}}>Kelola anggota dan pantau kehadiran UKM dengan antarmuka modern.</div>
-
+          <div style={{ marginBottom: 16 }}>
+            {sudahAbsen ? (
+              <span style={{ color: 'green', fontWeight: 'bold' }}>✅ Anda sudah absen hari ini</span>
+            ) : (
+              <button 
+                onClick={() => router.push('/dashboard/absen')} // Sesuaikan URL halaman absenmu
+                style={{ background: '#22c55e', color: 'white', padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}
+              >
+                Absen Sekarang
+              </button>
+            )}
+          </div>
           <div style={{display:'flex',gap:4,background:'#f8fafc',border:'2px solid rgba(15,23,82,0.35)',borderRadius:12,padding:4,marginBottom:28,width:'fit-content'}}>
             <button className={`tab-btn ${activeTab==='members'?'on':''}`} onClick={()=>setActiveTab('members')}>👥 Manajemen Anggota</button>
             <button className={`tab-btn ${activeTab==='absen'?'on':''}`} onClick={()=>{setActiveTab('absen');getAttendances()}}>📋 Rekap Absensi</button>

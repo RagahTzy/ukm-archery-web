@@ -33,7 +33,7 @@ export default function MemberDashboard() {
   },[router,today])
 
   const handleAbsen = async () => {
-    router.push('/dashboard/member/absen')
+    router.push('/dashboard/absen')
   }
 
   useEffect(()=>{loadData()},[loadData])

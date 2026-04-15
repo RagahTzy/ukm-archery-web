@@ -10,6 +10,7 @@ export default function AbsenPage() {
   const [stream, setStream] = useState<MediaStream | null>(null)
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
+  const [dashboardUrl, setDashboardUrl] = useState<string>('/dashboard/member')
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
 
@@ -24,15 +25,22 @@ export default function AbsenPage() {
       }
       setUserId(user.id)
 
+      // Cek role untuk menentukan URL kembali
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      const role = profile?.role || 'member'
+      const targetDashboard = `/dashboard/${role}`
+      setDashboardUrl(targetDashboard)
+
       // Check if already absen today
       const { data: absen } = await supabase
         .from('attendance')
         .select('*')
         .eq('user_id', user.id)
         .eq('date', today)
+        
       if (absen && absen.length > 0) {
         alert('Anda sudah absen hari ini')
-        router.push('/dashboard/member')
+        router.push(targetDashboard)
         return
       }
 
@@ -50,7 +58,6 @@ export default function AbsenPage() {
     }
     init()
 
-    // Cleanup saat komponen dibongkar (unmount)
     return () => {
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop())
@@ -60,63 +67,47 @@ export default function AbsenPage() {
 
   const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current || !userId) return
-
     const canvas = canvasRef.current
     const video = videoRef.current
     const context = canvas.getContext('2d')
     if (!context) return
-
     canvas.width = video.videoWidth
     canvas.height = video.videoHeight
     context.drawImage(video, 0, 0)
-
     canvas.toBlob(async (blob) => {
       if (!blob) return
-
       setLoading(true)
-      
-      // 1. Tambahkan timestamp agar nama file SELALU UNIK
       const timestamp = new Date().getTime()
       const fileName = `${userId}_${today}_${timestamp}.jpg`
-      
-      // 2. Hapus opsi upsert: true
       const { data, error } = await supabase.storage
         .from('attendance-photos')
         .upload(fileName, blob, { contentType: 'image/jpeg' })
 
       if (error) {
-        alert('Gagal upload foto: ' + error.message)
-        setLoading(false)
-        return
+         alert('Gagal upload foto')
+         setLoading(false)
+         return
       }
 
-      const photoUrl = supabase.storage.from('attendance-photos').getPublicUrl(fileName).data.publicUrl
-
+      const { data: publicUrlData } = supabase.storage.from('attendance-photos').getPublicUrl(fileName)
+      
       const { error: insertError } = await supabase
         .from('attendance')
-        .insert([{ user_id: userId, date: today, status: 'hadir', photo_url: photoUrl }])
+        .insert([{ user_id: userId, date: today, status: 'hadir', photo_url: publicUrlData.publicUrl }])
 
       if (insertError) {
-        alert('Gagal absen: ' + insertError.message)
+         console.error("Detail Error Supabase:", insertError)
+         alert('Gagal mencatat kehadiran: ' + insertError.message)
       } else {
-        // --- LOGIKA MEMATIKAN KAMERA ---
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop())
-        }
-        if (videoRef.current) {
-          videoRef.current.srcObject = null
-        }
-        // -------------------------------
-
-        alert('Absen berhasil!')
-        router.push('/dashboard/member')
+         alert('Berhasil absen!')
+         router.push(dashboardUrl) // Kembali ke dashboard sesuai role
       }
       setLoading(false)
-    })
+    }, 'image/jpeg')
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#ecfeff 0%,#f8fafc 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif" }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif" }}>
       <div style={{ background: '#ffffff', border: '2px solid rgba(15,23,82,0.35)', borderRadius: '24px', padding: '32px', boxShadow: '0 24px 60px rgba(30,58,138,0.08)', maxWidth: '500px', width: '100%', textAlign: 'center' }}>
         <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: '24px', color: '#0f172a', fontWeight: '700', marginBottom: '16px' }}>Absen Kehadiran</h1>
         <p style={{ color: '#475569', fontSize: '14px', marginBottom: '24px' }}>Ambil foto sebagai bukti kehadiran</p>
@@ -130,16 +121,12 @@ export default function AbsenPage() {
             color: '#ffffff',
             padding: '14px 30px',
             borderRadius: '16px',
-            fontSize: '14px',
-            fontWeight: '700',
             border: 'none',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            fontFamily: "'DM Sans',sans-serif",
-            transition: 'all 0.2s',
-            opacity: loading ? 0.5 : 1
+            cursor: 'pointer',
+            fontWeight: 'bold'
           }}
         >
-          {loading ? 'Mengupload...' : 'Ambil Foto & Absen'}
+          {loading ? 'Memproses...' : 'Ambil Foto & Absen'}
         </button>
       </div>
     </div>
