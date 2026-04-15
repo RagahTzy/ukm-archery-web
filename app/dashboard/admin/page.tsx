@@ -164,7 +164,9 @@ export default function AdminDashboard() {
       <div style={S.layout}>
         <div style={S.topbar}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <div style={S.logo}>⚜️</div>
+            <div style={{...S.logo,background:'none',boxShadow:'none'}}>
+              <img src="/logo_ukm.jpg" alt="Logo UKM" style={{width:'100%',height:'100%',borderRadius:14,objectFit:'cover'}} />
+            </div>
             <span style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:'#0f172a',fontWeight:700}}>UKM Admin</span>
             <span style={{background:'rgba(245,158,11,0.14)',color:'#854d0e',fontSize:11,padding:'4px 12px',borderRadius:20,border:'1px solid rgba(245,158,11,0.22)',fontWeight:600}}>ADMINISTRATOR</span>
           </div>

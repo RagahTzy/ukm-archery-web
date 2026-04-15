@@ -61,7 +61,9 @@ export default function Login() {
       <div className="page">
         <div className="orb1" /><div className="orb2" />
         <div className="card">
-          <div className="icon-wrap">⚜️</div>
+          <div className="icon-wrap">
+            <img src="/logo_ukm.jpg" alt="Logo UKM" />
+          </div>
           <h1>Masuk</h1>
           <p className="subtitle">Portal Anggota UKM</p>
           <div className="form">

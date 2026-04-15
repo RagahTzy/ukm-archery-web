@@ -282,7 +282,9 @@ export default function BendaharaDashboard() {
       <div style={S.layout}>
         <div style={S.topbar}>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <div style={S.logo}>💰</div>
+            <div style={{...S.logo,background:'none',boxShadow:'none'}}>
+              <img src="/logo_ukm.jpg" alt="Logo UKM" style={{width:'100%',height:'100%',borderRadius:14,objectFit:'cover'}} />
+            </div>
             <span style={S.title}>Kas UKM</span>
             <span style={S.badge}>BENDAHARA</span>
           </div>

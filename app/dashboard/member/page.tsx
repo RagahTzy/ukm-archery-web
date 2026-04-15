@@ -96,7 +96,9 @@ export default function MemberDashboard() {
       <div className="layout">
         <div className="topbar">
           <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <div className="logo">⚜️</div>
+            <div className="logo" style={{background:'none',boxShadow:'none',padding:0}}>
+              <img src="/logo_ukm.jpg" alt="Logo UKM" style={{width:'100%',height:'100%',borderRadius:14,objectFit:'cover'}} />
+            </div>
             <span className="ttl">UKM</span>
             <span className="badge">{profile?.role}</span>
           </div>
