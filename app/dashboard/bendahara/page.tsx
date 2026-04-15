@@ -180,19 +180,19 @@ export default function BendaharaDashboard() {
 
   const S = {
     layout:{minHeight:'100vh',background:'linear-gradient(180deg,#ecfeff 0%,#d9f99d 55%,#fde68a 100%)',color:'#0f172a',fontFamily:"'DM Sans',sans-serif"},
-    topbar:{background:'#ffffff',backdropFilter:'blur(18px)',borderBottom:'1px solid rgba(30,58,138,0.18)',padding:'0 32px',height:64,display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky' as const,top:0,zIndex:10,boxShadow:'0 12px 30px rgba(30,58,138,0.08)'},
-    logo:{width:36,height:36,background:'linear-gradient(135deg,#06b6d4,#22c55e)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,color:'#ffffff',boxShadow:'0 16px 30px rgba(34,197,94,0.18)'},
+    topbar:{background:'linear-gradient(135deg,#ecfeff 0%,#d9f99d 30%,#fef3c7 100%)',backdropFilter:'blur(18px)',borderBottom:'2px solid rgba(15,23,82,0.35)',padding:'12px 16px',minHeight:64,display:'flex',flexWrap:'wrap' as const,alignItems:'flex-start',justifyContent:'space-between',gap:'12px',position:'sticky' as const,top:0,zIndex:10,boxShadow:'0 12px 30px rgba(30,58,138,0.08)'},
+    logo:{width:36,height:36,background:'linear-gradient(135deg,#06b6d4,#22c55e,#f59e0b)',borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,color:'#ffffff',boxShadow:'0 16px 30px rgba(34,197,94,0.18)'},
     title:{fontFamily:"'Playfair Display',serif",fontSize:18,color:'#0f172a',fontWeight:700},
-    badge:{background:'rgba(245,158,11,0.12)',color:'#92400e',fontSize:11,padding:'4px 12px',borderRadius:20,border:'2px solid rgba(15,23,82,0.35)',fontWeight:600},
-    btnLogout:{background:'linear-gradient(135deg,#06b6d4,#22c55e,#f59e0b)',border:'none',color:'#ffffff',padding:'10px 18px',borderRadius:14,fontSize:13,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"},
-    content:{maxWidth:1200,margin:'0 auto',padding:'40px 32px'},
+    badge:{background:'rgba(245,158,11,0.14)',color:'#92400e',fontSize:11,padding:'4px 12px',borderRadius:20,border:'1px solid rgba(245,158,11,0.22)',fontWeight:600},
+    btnLogout:{background:'rgba(34,197,94,0.12)',border:'1px solid rgba(34,197,94,0.22)',color:'#0b6623',padding:'10px 18px',borderRadius:14,fontSize:13,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"},
+    content:{maxWidth:1200,margin:'0 auto',padding:'20px 16px'},
     pageTitle:{fontFamily:"'Playfair Display',serif",fontSize:26,color:'#0f172a',fontWeight:700,marginBottom:4},
     pageSub:{color:'#475569',fontSize:14,marginBottom:28},
     tabs:{display:'flex',gap:4,background:'#f8fafc',border:'2px solid rgba(15,23,82,0.35)',borderRadius:12,padding:4,marginBottom:28,width:'fit-content'},
     tableWrap:{background:'#ffffff',border:'2px solid rgba(15,23,82,0.35)',borderRadius:20,overflow:'hidden',boxShadow:'0 18px 50px rgba(30,58,138,0.08)'},
     empty:{textAlign:'center' as const,padding:60,color:'#64748b',fontSize:14},
-    overlay:{position:'fixed' as const,inset:0,background:'rgba(15,23,42,0.18)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:24},
-    modal:{background:'#ffffff',border:'2px solid rgba(15,23,82,0.35)',borderRadius:24,padding:36,width:'100%',maxWidth:500,color:'#0f172a',boxShadow:'0 30px 80px rgba(30,58,138,0.12)'},
+    overlay:{position:'fixed' as const,inset:0,background:'rgba(15,23,42,0.18)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:16},
+    modal:{background:'#ffffff',border:'2px solid rgba(15,23,82,0.35)',borderRadius:24,padding:24,width:'100%',maxWidth:500,color:'#0f172a',boxShadow:'0 30px 80px rgba(30,58,138,0.12)'},
   }
 
   return (
@@ -203,7 +203,7 @@ export default function BendaharaDashboard() {
         body{background:linear-gradient(180deg,#ecfeff 0%,#d9f99d 55%,#fde68a 100%)!important;color:#0f172a!important;}
         .tab-btn{padding:9px 20px;border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.2s;color:#475569;background:transparent;}
         .tab-btn.on{background:rgba(56,111,232,0.10);color:#0f172a;border:1px solid rgba(30,58,138,0.25);}
-        .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+        .stats-grid{display:grid;grid-template-columns:repeat(1,1fr);gap:16px;margin-bottom:28px;}
         .sc{background:#ffffff;border:2px solid rgba(15,23,82,0.35);border-radius:20px;padding:24px;box-shadow:0 24px 60px rgba(30,58,138,0.08);}
         .sl{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;color:#64748b;}
         .sv{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;line-height:1;color:#0f172a;}
@@ -277,18 +277,76 @@ export default function BendaharaDashboard() {
         .ak{color:#b91c1c;font-weight:700;font-size:14px;}
         .dt{color:#64748b;font-size:12px;}
         .empty{text-align:center;padding:60px;color:#64748b;font-size:14px;}
+        @media (min-width: 640px) {
+          .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+          .sc { padding: 24px; }
+          .sl { font-size: 11px; margin-bottom: 10px; }
+          .sv { font-size: 22px; }
+          .ctrl { gap: 10px; margin-bottom: 20px; }
+          .cl { font-size: 13px; }
+          .cs { padding: 10px 14px; font-size: 13px; }
+          .ipill { font-size: 12px; padding: 6px 12px; }
+          .tscroll { overflow-x: auto; }
+          th { padding: 13px 12px; font-size: 11px; }
+          td { padding: 13px 12px; font-size: 14px; }
+          .mn { font-size: 14px; }
+          .ms { font-size: 12px; }
+          .nc { font-size: 13px; }
+          .chk { width: 32px; height: 32px; font-size: 14px; }
+          .pw { gap: 7px; }
+          .pb { width: 44px; height: 4px; }
+          .pt { font-size: 11px; }
+          .binp { padding: 6px 14px; font-size: 12px; }
+          .mtitle { font-size: 20px; }
+          .msub { font-size: 13px; margin-bottom: 20px; }
+          .minfo { padding: 14px 16px; font-size: 13px; margin-bottom: 18px; }
+          .mlbl { font-size: 11px; margin-bottom: 8px; }
+          .minp { padding: 14px 16px; font-size: 15px; }
+          .pvbox { margin-top: 12px; padding: 14px; }
+          .pvrow { font-size: 12px; padding: 4px 0; }
+          .pvsisa { font-size: 11px; margin-top: 8px; padding-top: 8px; }
+          .macts { gap: 10px; margin-top: 22px; }
+          .bconf { padding: 14px; font-size: 14px; }
+          .bcanm { padding: 14px; font-size: 14px; }
+          .sh { margin-bottom: 16px; }
+          .badd { padding: 10px 20px; font-size: 13px; }
+          .fcard { padding: 24px; margin-bottom: 20px; }
+          .fgrid { grid-template-columns: 1fr 1fr; gap: 16px; }
+          .flbl { font-size: 11px; margin-bottom: 8px; }
+          .fi { padding: 14px 16px; font-size: 13px; }
+          .fa { gap: 10px; margin-top: 16px; }
+          .bsv { padding: 12px 20px; font-size: 13px; }
+          .bcn { padding: 12px 20px; font-size: 13px; }
+          .txn { font-size: 14px; }
+          .txd { font-size: 12px; margin-top: 2px; }
+          .bm { padding: 5px 12px; font-size: 11px; }
+          .bk { padding: 5px 12px; font-size: 11px; }
+          .am { font-size: 14px; }
+          .ak { font-size: 14px; }
+          .dt { font-size: 12px; }
+        }
+        @media (min-width: 768px) {
+          .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (min-width: 1024px) {
+          .topbar { padding: 0 32px; }
+          .content { padding: 40px 32px; }
+          .pageTitle { font-size: 26px; }
+          .pageSub { font-size: 14px; margin-bottom: 28px; }
+          .tabs { margin-bottom: 28px; }
+        }
       `}</style>
 
       <div style={S.layout}>
         <div style={S.topbar}>
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,minWidth:0,flex:'1 1 0',flexWrap:'wrap',maxWidth:'100%'}}>
             <div style={{...S.logo,background:'none',boxShadow:'none'}}>
               <img src="/logo_ukm.jpg" alt="Logo UKM" style={{width:'100%',height:'100%',borderRadius:14,objectFit:'cover'}} />
             </div>
-            <span style={S.title}>Kas UKM</span>
-            <span style={S.badge}>BENDAHARA</span>
+            <span style={{...S.title,whiteSpace:'nowrap'}}>Kas UKM</span>
+            <span style={{...S.badge,whiteSpace:'nowrap'}}>BENDAHARA</span>
           </div>
-          <button style={S.btnLogout} onClick={async()=>{await supabase.auth.signOut();router.push('/login')}}>Keluar</button>
+          <button style={{...S.btnLogout,flexShrink:0,alignSelf:'flex-start',whiteSpace:'nowrap'}} onClick={async()=>{await supabase.auth.signOut();router.push('/login')}}>Keluar</button>
         </div>
 
         <div style={S.content}>

@@ -63,11 +63,11 @@ export default function MemberDashboard() {
         *{box-sizing:border-box;margin:0;padding:0;}
         body{background:linear-gradient(180deg,#ecfeff 0%,#d9f99d 55%,#fef3c7 100%)!important;color:#0f172a!important;}
         .layout{min-height:100vh;background:#f8fbff;color:#0f172a;font-family:'DM Sans',sans-serif;}
-        .topbar{background:#ffffff;border-bottom:2px solid rgba(15,23,82,0.35);box-shadow:0 20px 50px rgba(30,58,138,0.08);padding:0 32px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
-        .logo{width:42px;height:42px;background:linear-gradient(135deg,#06b6d4,#22c55e);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#ffffff;}
-        .ttl{font-family:'Playfair Display',serif;font-size:18px;color:#0f172a;font-weight:600;}
-        .badge{background:rgba(219,234,254,0.35);color:#0f172a;font-size:11px;padding:4px 12px;border-radius:999px;border:2px solid rgba(15,23,82,0.35);font-weight:700;text-transform:uppercase;}
-        .btn-out{background:#e0f2fe;border:1px solid rgba(14,165,233,0.22);color:#0c4a6e;padding:10px 18px;border-radius:12px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;}
+        .topbar{background:#ffffff;border-bottom:2px solid rgba(15,23,82,0.35);box-shadow:0 20px 50px rgba(30,58,138,0.08);padding:12px 16px;min-height:64px;display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px;position:sticky;top:0;left:0;right:0;width:100%;box-sizing:border-box;z-index:20;}
+        .logo{width:36px;height:36px;background:linear-gradient(135deg,#06b6d4,#22c55e,#f59e0b);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#ffffff;box-shadow:0 16px 30px rgba(34,197,94,0.18);}
+        .ttl{font-family:'Playfair Display',serif;font-size:18px;color:#0f172a;font-weight:600;white-space:nowrap;}
+        .badge{background:rgba(245,158,11,0.14);color:#92400e;font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid rgba(245,158,11,0.22);font-weight:600;white-space:nowrap;}
+        .btn-out{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.22);color:#0b6623;padding:10px 18px;border-radius:10px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;align-self:flex-start;}
         .content{max-width:840px;margin:0 auto;padding:40px 32px;}
         .ptitle{font-family:'Playfair Display',serif;font-size:28px;color:#0f172a;font-weight:700;margin-bottom:6px;}
         .psub{color:#475569;font-size:14px;margin-bottom:32px;}
@@ -76,10 +76,10 @@ export default function MemberDashboard() {
         .clbl{font-size:11px;font-weight:600;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;}
         .cval{font-family:'Playfair Display',serif;font-size:32px;font-weight:700;color:#0f172a;}
         .cunit{font-size:13px;font-weight:500;color:#64748b;font-family:'DM Sans',sans-serif;margin-left:6px;}
-        .prow{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:2px solid rgba(15,23,82,0.35);}
+        .prow{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:2px solid rgba(15,23,82,0.35);flex-wrap:wrap;gap:8px;}
         .prow:last-child{border-bottom:none;}
-        .pk{font-size:12px;color:#64748b;font-weight:600;}
-        .pv{font-size:14px;color:#0f172a;font-weight:600;}
+        .pk{font-size:12px;color:#64748b;font-weight:600;min-width:120px;}
+        .pv{font-size:14px;color:#0f172a;font-weight:600;min-width:0;word-break:break-word;overflow-wrap:anywhere;}
         .absen-done{display:flex;align-items:center;gap:10px;background:rgba(219,234,254,0.35);border:2px solid rgba(15,23,82,0.35);border-radius:16px;padding:18px 20px;}
         .adone-txt{color:#166534;font-weight:700;font-size:14px;}
         .btn-absen{background:linear-gradient(135deg,#06b6d4 0%,#22c55e 50%,#f59e0b 100%);color:#ffffff;padding:14px 30px;border-radius:16px;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;}
@@ -91,20 +91,44 @@ export default function MemberDashboard() {
         .hbadge{background:rgba(245,158,11,0.12);color:#92400e;border:1px solid rgba(245,158,11,0.24);padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;}
         .hempty{padding:32px 24px;text-align:center;color:#94a3b8;font-size:13px;}
         .hhead{padding:20px 24px;border-bottom:2px solid rgba(15,23,82,0.35);font-size:14px;font-weight:700;color:#0f172a;}
+        @media (min-width: 640px) {
+          .topbar { padding: 12px 32px; }
+          .content { padding: 40px 32px; }
+          .ptitle { font-size: 28px; margin-bottom: 6px; }
+          .psub { font-size: 14px; margin-bottom: 32px; }
+          .grid2 { grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+          .card { padding: 24px; }
+          .clbl { font-size: 11px; margin-bottom: 10px; }
+          .cval { font-size: 32px; }
+          .cunit { font-size: 13px; margin-left: 6px; }
+          .prow { padding: 14px 0; }
+          .pk { font-size: 12px; }
+          .pv { font-size: 14px; }
+          .absen-done { padding: 18px 20px; }
+          .adone-txt { font-size: 14px; }
+          .btn-absen { padding: 14px 30px; font-size: 14px; }
+          .hitem { padding: 18px 24px; }
+          .hdate { font-size: 13px; }
+          .hbadge { padding: 5px 14px; font-size: 11px; }
+          .hempty { padding: 32px 24px; font-size: 13px; }
+          .hhead { padding: 20px 24px; font-size: 14px; }
+        }
+        @media (min-width: 768px) {
+          .grid2 { grid-template-columns: 1fr 1fr; }
+        }
       `}</style>
 
       <div className="layout">
         <div className="topbar">
-          <div style={{display:'flex',alignItems:'center',gap:12}}>
-            <div className="logo" style={{background:'none',boxShadow:'none',padding:0}}>
+          <div style={{display:'flex',alignItems:'center',gap:12,minWidth:0,flex:'1 1 0',flexWrap:'wrap',maxWidth:'100%'}}>
+            <div className="logo" style={{background:'none',boxShadow:'none'}}>
               <img src="/logo_ukm.jpg" alt="Logo UKM" style={{width:'100%',height:'100%',borderRadius:14,objectFit:'cover'}} />
             </div>
             <span className="ttl">UKM</span>
             <span className="badge">{profile?.role}</span>
           </div>
-          <button className="btn-out" onClick={async()=>{await supabase.auth.signOut();router.push('/login')}}>Keluar</button>
+          <button className="btn-out" style={{flexShrink:0}} onClick={async()=>{await supabase.auth.signOut();router.push('/login')}}>Keluar</button>
         </div>
-
         <div className="content">
           <div className="ptitle">Halo, {profile?.name?.split(' ')[0]} 👋</div>
           <div className="psub">Selamat datang kembali di portal anggota UKM</div>
