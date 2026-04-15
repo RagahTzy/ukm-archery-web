@@ -33,16 +33,7 @@ export default function MemberDashboard() {
   },[router,today])
 
   const handleAbsen = async () => {
-    if (!userId) return
-    setAbsenLoading(true)
-    const {error} = await supabase.from('attendance').insert([{user_id:userId,date:today,status:'hadir'}])
-    if (error){
-      alert('Gagal absen: '+error.message)
-    } else {
-      setSudahAbsen(true)
-      loadData()
-    }
-    setAbsenLoading(false)
+    router.push('/dashboard/member/absen')
   }
 
   useEffect(()=>{loadData()},[loadData])

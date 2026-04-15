@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
 type Profile = { id: string; name: string; email: string; role: string; status: string }
-type Attendance = { id: string; user_id: string; date: string; status: string }
+type Attendance = { id: string; user_id: string; date: string; status: string; photo_url?: string }
 type ActiveTab = 'members' | 'absen'
 
 const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
@@ -20,6 +20,10 @@ export default function AdminDashboard() {
   const [filter, setFilter] = useState<'all'|'pending'|'approved'|'rejected'>('all')
   const [selMonth, setSelMonth] = useState(now.getMonth()+1)
   const [selYear, setSelYear] = useState(now.getFullYear())
+  
+  // State baru untuk popup foto
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
+  
   const selectedMonth = `${selYear}-${String(selMonth).padStart(2,'0')}`
   const router = useRouter()
   const yearOptions = Array.from({length:10},(_,i)=>now.getFullYear()-5+i)
@@ -38,7 +42,6 @@ export default function AdminDashboard() {
 
   const getAttendances = useCallback(async () => {
     setLoading(true)
-    // Hitung hari terakhir bulan yang tepat
     const lastDay = new Date(selYear, selMonth, 0).getDate()
     const dateStart = `${selYear}-${String(selMonth).padStart(2,'0')}-01`
     const dateEnd = `${selYear}-${String(selMonth).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
@@ -63,9 +66,9 @@ export default function AdminDashboard() {
     const rows: Array<Array<string | number>> = [header]
 
     approvedMembers.forEach((member) => {
-      const udates = absenMap[member.id] ?? new Set<string>()
-      const total = udates.size
-      const row: Array<string | number> = [member.name, member.email, member.status, ...allDates.map(date => udates.has(date) ? '✓' : ''), total]
+      const udates = absenMap[member.id] ?? {}
+      const total = Object.keys(udates).length
+      const row: Array<string | number> = [member.name, member.email, member.status, ...allDates.map(date => udates[date] ? '✓' : ''), total]
       rows.push(row)
     })
 
@@ -89,8 +92,14 @@ export default function AdminDashboard() {
   const getWeekOfMonth = (dateStr:string) => Math.ceil(new Date(dateStr+'T00:00:00').getDate()/7)
   const allDates = [...new Set(attendances.map(a=>a.date))].sort()
   const approvedMembers = users.filter(u=>u.status==='approved')
-  const absenMap:Record<string,Set<string>> = {}
-  attendances.forEach(a=>{if(!absenMap[a.user_id]) absenMap[a.user_id]=new Set(); absenMap[a.user_id].add(a.date)})
+  
+  // Mengubah struktur mapping agar menyimpan detail absen (termasuk URL foto)
+  const absenMap: Record<string, Record<string, Attendance>> = {}
+  attendances.forEach(a => {
+    if(!absenMap[a.user_id]) absenMap[a.user_id] = {}
+    absenMap[a.user_id][a.date] = a
+  })
+
   const filtered = filter==='all'?users:users.filter(u=>u.status===filter)
   const counts = {
     pending:users.filter(u=>u.status==='pending').length,
@@ -154,11 +163,13 @@ export default function AdminDashboard() {
         .cs{background:#ffffff;border:2px solid rgba(15,23,82,0.35);border-radius:10px;padding:7px 10px;color:#0f172a;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;}
         .cs option{background:#ffffff;color:#0f172a;}
         .ainfo{font-size:11px;color:#64748b;}
-        .dot-h{width:24px;height:24px;background:#d1fae5e;border:1.5px solid rgba(34,197,94,0.45);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:10px;color:#166534;font-weight:700;}
+        .dot-h{width:24px;height:24px;background:#d1fae5;border:1.5px solid rgba(34,197,94,0.45);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:10px;color:#166534;font-weight:700;}
         .dot-a{width:24px;height:24px;background:#f8fafc;border:1px solid rgba(203,213,225,0.8);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:9px;color:#94a3b8;}
         .tot-badge{background:#cffafe;color:#0c4a6e;border:1px solid rgba(6,182,212,0.22);padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;}
         .wk-hdr{color:#0ea5e9!important;font-size:10px!important;}
         .empty{text-align:center;padding:60px;color:#64748b;font-size:14px;}
+        .btn-photo{background:#e0f2fe;color:#0369a1;border:1px solid rgba(14,165,233,0.3);padding:3px 6px;border-radius:6px;font-size:9px;margin-top:4px;cursor:pointer;font-weight:600;}
+        .btn-photo:hover{background:#bae6fd;}
         @media (min-width: 640px) {
           .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
           .sc { padding: 24px; }
@@ -181,6 +192,7 @@ export default function AdminDashboard() {
           .ainfo { font-size: 12px; }
           .dot-h, .dot-a { width: 28px; height: 28px; font-size: 12px; }
           .tot-badge { padding: 4px 10px; font-size: 12px; }
+          .btn-photo { font-size: 10px; padding: 4px 8px; }
         }
         @media (min-width: 768px) {
           .stats-grid { grid-template-columns: repeat(3, 1fr); }
@@ -284,9 +296,9 @@ export default function AdminDashboard() {
                 <select className="cs" value={selYear} onChange={e=>setSelYear(Number(e.target.value))}>
                   {yearOptions.map(y=><option key={y} value={y}>{y}</option>)}
                 </select>
-                <button className="binp" style={{whiteSpace:'nowrap'}} onClick={exportAttendanceExcel}>Export Excel</button>
+                <button className="fbtn on" style={{whiteSpace:'nowrap', border:'none', padding:'8px 16px'}} onClick={exportAttendanceExcel}>Export Excel</button>
                 <span className="ainfo">{allDates.length} hari pertemuan · {approvedMembers.length} anggota aktif</span>
-                <span className="ainfo">📊 Total attendance records: {attendances.length}</span>
+                <span className="ainfo">📊 Total records: {attendances.length}</span>
               </div>
 
               {loading?<div className="empty">Memuat data...</div>:(
@@ -305,7 +317,7 @@ export default function AdminDashboard() {
                               const date=new Date(d+'T00:00:00')
                               const days=['Min','Sen','Sel','Rab','Kam','Jum','Sab']
                               return(
-                                <th key={d} style={{minWidth:52,textAlign:'center'}}>
+                                <th key={d} style={{minWidth:60,textAlign:'center'}}>
                                   <div className="wk-hdr">Mg {week}</div>
                                   <div style={{color:'#64748b',fontSize:10,marginTop:1}}>{days[date.getDay()]}</div>
                                   <div style={{color:'#94a3b8',fontSize:12,marginTop:1}}>{date.getDate()}</div>
@@ -317,21 +329,36 @@ export default function AdminDashboard() {
                         </thead>
                         <tbody>
                           {approvedMembers.map((u,i)=>{
-                            const udates=absenMap[u.id]??new Set()
-                            const total=udates.size
-                            const pct=allDates.length>0?Math.round(total/allDates.length*100):0
+                            const udates = absenMap[u.id] ?? {}
+                            const total = Object.keys(udates).length
+                            const pct = allDates.length>0 ? Math.round(total/allDates.length*100) : 0
+                            
                             return(
                               <tr key={u.id}>
                                 <td className="tl"><span className="nc">{i+1}</span></td>
                                 <td className="tl"><div className="mname">{u.name}</div></td>
-                                {allDates.map(d=>(
-                                  <td key={d}>
-                                    {udates.has(d)
-                                      ?<div className="dot-h">✓</div>
-                                      :<div className="dot-a">–</div>
-                                    }
-                                  </td>
-                                ))}
+                                {allDates.map(d => {
+                                  const record = udates[d]
+                                  return (
+                                    <td key={d}>
+                                      {record ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                          <div className="dot-h">✓</div>
+                                          {record.photo_url && (
+                                            <button 
+                                              className="btn-photo"
+                                              onClick={() => setSelectedPhoto(record.photo_url!)}
+                                            >
+                                              Lihat Foto
+                                            </button>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div className="dot-a">–</div>
+                                      )}
+                                    </td>
+                                  )
+                                })}
                                 <td>
                                   <span className="tot-badge">{total}/{allDates.length}</span>
                                   <div style={{fontSize:10,color:pct>=80?'#22c55e':pct>=50?'#0ea5e9':'#f87171',marginTop:3}}>{pct}%</div>
@@ -349,6 +376,51 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* Modal / Pop-up Foto */}
+      {selectedPhoto && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15,23,82,0.6)', backdropFilter: 'blur(4px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: '24px', padding: '24px',
+            maxWidth: '450px', width: '100%', position: 'relative',
+            boxShadow: '0 24px 60px rgba(30,58,138,0.2)', textAlign: 'center'
+          }}>
+            <button 
+              onClick={() => setSelectedPhoto(null)} 
+              style={{
+                position: 'absolute', top: '16px', right: '16px',
+                background: '#fee2e2', color: '#b91c1c', border: 'none',
+                borderRadius: '50%', width: '32px', height: '32px',
+                cursor: 'pointer', fontWeight: 'bold', fontSize: '14px'
+              }}
+            >
+              ✕
+            </button>
+            <h3 style={{ fontFamily: "'Playfair Display',serif", marginBottom: '16px', fontSize: '20px', color: '#0f172a' }}>
+              Bukti Kehadiran
+            </h3>
+            <img 
+              src={selectedPhoto} 
+              alt="Bukti Absen" 
+              style={{ width: '100%', maxHeight: '60vh', borderRadius: '12px', objectFit: 'contain', background: '#f1f5f9' }} 
+            />
+            <button 
+              onClick={() => setSelectedPhoto(null)}
+              style={{
+                marginTop: '20px', padding: '10px 24px', borderRadius: '12px',
+                background: '#f8fafc', border: '2px solid rgba(15,23,82,0.2)',
+                cursor: 'pointer', fontWeight: 600, fontFamily: "'DM Sans', sans-serif"
+              }}
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
     </>
   )
 }
