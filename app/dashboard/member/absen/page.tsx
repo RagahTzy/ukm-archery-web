@@ -14,6 +14,8 @@ export default function AbsenPage() {
   const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
+    let currentStream: MediaStream | null = null;
+
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -37,6 +39,7 @@ export default function AbsenPage() {
       // Access camera
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({ video: true })
+        currentStream = mediaStream;
         setStream(mediaStream)
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream
@@ -47,9 +50,10 @@ export default function AbsenPage() {
     }
     init()
 
+    // Cleanup saat komponen dibongkar (unmount)
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop())
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop())
       }
     }
   }, [router, today])
@@ -70,7 +74,12 @@ export default function AbsenPage() {
       if (!blob) return
 
       setLoading(true)
-      const fileName = `${userId}_${today}.jpg`
+      
+      // 1. Tambahkan timestamp agar nama file SELALU UNIK
+      const timestamp = new Date().getTime()
+      const fileName = `${userId}_${today}_${timestamp}.jpg`
+      
+      // 2. Hapus opsi upsert: true
       const { data, error } = await supabase.storage
         .from('attendance-photos')
         .upload(fileName, blob, { contentType: 'image/jpeg' })
@@ -90,6 +99,15 @@ export default function AbsenPage() {
       if (insertError) {
         alert('Gagal absen: ' + insertError.message)
       } else {
+        // --- LOGIKA MEMATIKAN KAMERA ---
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop())
+        }
+        if (videoRef.current) {
+          videoRef.current.srcObject = null
+        }
+        // -------------------------------
+
         alert('Absen berhasil!')
         router.push('/dashboard/member')
       }
@@ -102,7 +120,7 @@ export default function AbsenPage() {
       <div style={{ background: '#ffffff', border: '2px solid rgba(15,23,82,0.35)', borderRadius: '24px', padding: '32px', boxShadow: '0 24px 60px rgba(30,58,138,0.08)', maxWidth: '500px', width: '100%', textAlign: 'center' }}>
         <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: '24px', color: '#0f172a', fontWeight: '700', marginBottom: '16px' }}>Absen Kehadiran</h1>
         <p style={{ color: '#475569', fontSize: '14px', marginBottom: '24px' }}>Ambil foto sebagai bukti kehadiran</p>
-        <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '12px', marginBottom: '16px' }} />
+        <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '12px', marginBottom: '16px', backgroundColor: '#000' }} />
         <canvas ref={canvasRef} style={{ display: 'none' }} />
         <button
           onClick={capturePhoto}
