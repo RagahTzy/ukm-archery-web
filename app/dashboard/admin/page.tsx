@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
@@ -51,6 +52,28 @@ export default function AdminDashboard() {
     setAttendances(data??[])
     setLoading(false)
   },[selYear, selMonth])
+
+  const exportAttendanceExcel = () => {
+    if(allDates.length === 0) {
+      alert('Tidak ada data absensi untuk diekspor')
+      return
+    }
+
+    const header = ['Nama', 'Email', 'Status', ...allDates, 'Total']
+    const rows: Array<Array<string | number>> = [header]
+
+    approvedMembers.forEach((member) => {
+      const udates = absenMap[member.id] ?? new Set<string>()
+      const total = udates.size
+      const row: Array<string | number> = [member.name, member.email, member.status, ...allDates.map(date => udates.has(date) ? '✓' : ''), total]
+      rows.push(row)
+    })
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Absensi')
+    XLSX.writeFile(workbook, `Rekap_Absensi_${monthNames[selMonth-1]}_${selYear}.xlsx`)
+  }
 
   useEffect(()=>{checkAdmin();getUsers()},[checkAdmin,getUsers])
   useEffect(()=>{if(activeTab==='absen') getAttendances()},[activeTab,getAttendances])
@@ -227,6 +250,7 @@ export default function AdminDashboard() {
                 <select className="cs" value={selYear} onChange={e=>setSelYear(Number(e.target.value))}>
                   {yearOptions.map(y=><option key={y} value={y}>{y}</option>)}
                 </select>
+                <button className="binp" style={{whiteSpace:'nowrap'}} onClick={exportAttendanceExcel}>Export Excel</button>
                 <span className="ainfo">{allDates.length} hari pertemuan · {approvedMembers.length} anggota aktif</span>
                 <span className="ainfo">📊 Total attendance records: {attendances.length}</span>
               </div>

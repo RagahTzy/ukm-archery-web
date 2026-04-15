@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
@@ -61,6 +62,36 @@ export default function BendaharaDashboard() {
     setKasData(data??[])
     setLoading(false)
   },[selectedMonth])
+
+  const exportKasExcel = () => {
+    if(members.length === 0) {
+      alert('Tidak ada data iuran untuk diekspor')
+      return
+    }
+
+    const header = ['No', 'Nama Anggota', 'Email', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'Dibayar', 'Status']
+    const rows: Array<Array<string | number>> = [header]
+
+    members.forEach((member, index) => {
+      const rec = getRec(member.id)
+      const paid = getPaid(rec)
+      const status = paid === TOTAL_P ? 'Lunas' : 'Belum Lunas'
+      const row: Array<string | number> = [
+        index + 1,
+        member.name,
+        member.email,
+        ...[1,2,3,4,5,6,7,8].map(n => (rec?.[`pertemuan_${n}` as keyof KasPayment] ? '✓' : '')),
+        paid * IURAN,
+        status,
+      ]
+      rows.push(row)
+    })
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Rekap Iuran')
+    XLSX.writeFile(workbook, `Rekap_Iuran_Rutin_${monthNames[selMonth-1]}_${selYear}.xlsx`)
+  }
 
   const getTx = useCallback(async () => {
     const {data} = await supabase.from('transactions').select('*').order('created_at',{ascending:false})
@@ -283,6 +314,7 @@ export default function BendaharaDashboard() {
                 <select className="cs" value={selYear} onChange={e=>setSelYear(Number(e.target.value))}>
                   {yearOptions.map(y=><option key={y} value={y}>{y}</option>)}
                 </select>
+                <button className="binp" style={{whiteSpace:'nowrap'}} onClick={exportKasExcel}>Export Excel</button>
                 <span className="ipill">Rp {IURAN.toLocaleString('id-ID')}/pertemuan · {TOTAL_P} pertemuan/bulan</span>
               </div>
 
