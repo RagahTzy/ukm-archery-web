@@ -11,6 +11,10 @@ export default function AbsenPage() {
   const [loading, setLoading] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [dashboardUrl, setDashboardUrl] = useState<string>('/dashboard/member')
+  
+  // STATE BARU: Mencegah UI muncul sebelum pengecekan selesai
+  const [isChecking, setIsChecking] = useState(true) 
+  
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
 
@@ -19,10 +23,14 @@ export default function AbsenPage() {
 
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      
       if (!user) {
-        router.push('/login')
-        return
+        // PERHATIAN: Pastikan path ini sesuai dengan letak URL halaman absenmu!
+        // Misalnya jika link-nya namaukm.com/dashboard/absen, maka tulis ?next=/dashboard/absen
+        router.push('/login?next=/dashboard/absen')
+        return // Kita biarkan isChecking tetap true agar UI absen tidak muncul saat proses dilempar
       }
+      
       setUserId(user.id)
 
       // Cek role untuk menentukan URL kembali
@@ -52,8 +60,13 @@ export default function AbsenPage() {
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream
         }
+        
+        // JIKA SEMUA AMAN (SUDAH LOGIN & BLM ABSEN), BARU MUNCULKAN UI ABSENNYA
+        setIsChecking(false)
+        
       } catch (error) {
         alert('Tidak dapat mengakses kamera: ' + error)
+        setIsChecking(false)
       }
     }
     init()
@@ -84,9 +97,9 @@ export default function AbsenPage() {
         .upload(fileName, blob, { contentType: 'image/jpeg' })
 
       if (error) {
-         alert('Gagal upload foto')
-         setLoading(false)
-         return
+          alert('Gagal upload foto')
+          setLoading(false)
+          return
       }
 
       const { data: publicUrlData } = supabase.storage.from('attendance-photos').getPublicUrl(fileName)
@@ -96,19 +109,31 @@ export default function AbsenPage() {
         .insert([{ user_id: userId, date: today, status: 'hadir', photo_url: publicUrlData.publicUrl }])
 
       if (insertError) {
-         console.error("Detail Error Supabase:", insertError)
-         alert('Gagal mencatat kehadiran: ' + insertError.message)
+          console.error("Detail Error Supabase:", insertError)
+          alert('Gagal mencatat kehadiran: ' + insertError.message)
       } else {
-         alert('Berhasil absen!')
-         router.push(dashboardUrl) // Kembali ke dashboard sesuai role
+          alert('Berhasil absen!')
+          router.push(dashboardUrl)
       }
       setLoading(false)
     }, 'image/jpeg')
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif" }}>
-      <div style={{ background: '#ffffff', border: '2px solid rgba(15,23,82,0.35)', borderRadius: '24px', padding: '32px', boxShadow: '0 24px 60px rgba(30,58,138,0.08)', maxWidth: '500px', width: '100%', textAlign: 'center' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif", background: '#f8fbff' }}>
+      
+      {/* TAMPILAN SEMENTARA SELAMA PENGECEKAN */}
+      {isChecking && (
+        <h2 style={{ fontFamily: "'Playfair Display',serif", color: '#0f172a' }}>
+          Memeriksa sesi akses...
+        </h2>
+      )}
+
+      {/* TAMPILAN ABSEN ASLI (DISEMBUNYIKAN JIKA BELUM SELESAI CEK) */}
+      <div style={{ 
+          display: isChecking ? 'none' : 'block', // Menyembunyikan div ini via CSS
+          background: '#ffffff', border: '2px solid rgba(15,23,82,0.35)', borderRadius: '24px', padding: '32px', boxShadow: '0 24px 60px rgba(30,58,138,0.08)', maxWidth: '500px', width: '100%', textAlign: 'center' 
+      }}>
         <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: '24px', color: '#0f172a', fontWeight: '700', marginBottom: '16px' }}>Absen Kehadiran</h1>
         <p style={{ color: '#475569', fontSize: '14px', marginBottom: '24px' }}>Ambil foto sebagai bukti kehadiran</p>
         <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: '12px', marginBottom: '16px', backgroundColor: '#000' }} />
@@ -123,7 +148,8 @@ export default function AbsenPage() {
             borderRadius: '16px',
             border: 'none',
             cursor: 'pointer',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            width: '100%'
           }}
         >
           {loading ? 'Memproses...' : 'Ambil Foto & Absen'}

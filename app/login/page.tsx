@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function Login() {
@@ -11,6 +11,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Email dan password wajib diisi'); return }
@@ -24,9 +25,15 @@ export default function Login() {
       if (profileError || !profile) { setError('Profil akun tidak ditemukan'); await supabase.auth.signOut(); return }
       if (profile.status === 'pending') { setError('Akun belum disetujui admin. Mohon tunggu.'); await supabase.auth.signOut(); return }
       if (profile.status === 'rejected') { setError('Akun kamu ditolak oleh admin.'); await supabase.auth.signOut(); return }
-      if (profile.role === 'admin') router.push('/dashboard/admin')
-      else if (profile.role === 'bendahara') router.push('/dashboard/bendahara')
-      else router.push('/dashboard/member')
+      const nextUrl = searchParams.get('next') // Mengecek apakah ada url titipan di parameter
+
+      if (nextUrl) {
+         router.push(nextUrl) // Jika ada (misal dari scan QR), arahkan ke sana (contoh: /dashboard/absen)
+      } else {
+          if (profile.role === 'admin') router.push('/dashboard/admin')
+          else if (profile.role === 'bendahara') router.push('/dashboard/bendahara')
+          else router.push('/dashboard/member')
+      }
     } catch (err) { setError('Terjadi kesalahan, coba lagi'); console.error(err) }
     finally { setLoading(false) }
   }
