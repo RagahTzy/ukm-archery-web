@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react' // Tambahkan Suspense di sini
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-export default function Login() {
+// 1. KITA UBAH NAMA FUNGSI UTAMA MENJADI LoginForm
+function LoginForm() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,10 +26,10 @@ export default function Login() {
       if (profileError || !profile) { setError('Profil akun tidak ditemukan'); await supabase.auth.signOut(); return }
       if (profile.status === 'pending') { setError('Akun belum disetujui admin. Mohon tunggu.'); await supabase.auth.signOut(); return }
       if (profile.status === 'rejected') { setError('Akun kamu ditolak oleh admin.'); await supabase.auth.signOut(); return }
-      const nextUrl = searchParams.get('next') // Mengecek apakah ada url titipan di parameter
+      const nextUrl = searchParams.get('next')
 
       if (nextUrl) {
-         router.push(nextUrl) // Jika ada (misal dari scan QR), arahkan ke sana (contoh: /dashboard/absen)
+          router.push(nextUrl)
       } else {
           if (profile.role === 'admin') router.push('/dashboard/admin')
           else if (profile.role === 'bendahara') router.push('/dashboard/bendahara')
@@ -99,5 +100,14 @@ export default function Login() {
         </div>
       </div>
     </>
+  )
+}
+
+// 2. KITA BUAT FUNGSI EXPORT DEFAULT BARU YANG MEMBUNGKUS LoginForm DENGAN SUSPENSE
+export default function Login() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Memuat halaman...</div>}>
+      <LoginForm />
+    </Suspense>
   )
 }
