@@ -103,7 +103,12 @@ export default function AdminDashboard() {
   }
 
   const getWeekOfMonth = (dateStr:string) => Math.ceil(new Date(dateStr+'T00:00:00').getDate()/7)
-  const allDates = [...new Set(attendances.map(a=>a.date))].sort()
+  const lastDay = new Date(selYear, selMonth, 0).getDate()
+
+  const allDates = Array.from({ length: lastDay }, (_, i) => {
+    const day = String(i + 1).padStart(2, '0')
+    return `${selYear}-${String(selMonth).padStart(2, '0')}-${day}`
+  })
   const approvedMembers = users.filter(u=>u.status==='approved')
   
   // Mengubah struktur mapping agar menyimpan detail absen (termasuk URL foto)
