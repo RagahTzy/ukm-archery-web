@@ -1,42 +1,74 @@
 'use client'
 
-import { useState, Suspense } from 'react' // Tambahkan Suspense di sini
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
-// 1. KITA UBAH NAMA FUNGSI UTAMA MENJADI LoginForm
-function LoginForm() {
-  const [email, setEmail] = useState('')
+function ResetPasswordForm() {
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [isValidToken, setIsValidToken] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const handleLogin = async () => {
-    if (!email || !password) { setError('Email dan password wajib diisi'); return }
-    setLoading(true); setError('')
-    try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-      if (signInError) { setError('Email atau password salah'); return }
-      if (!data.user) { setError('Login gagal'); return }
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles').select('role, status').eq('id', data.user.id).single()
-      if (profileError || !profile) { setError('Profil akun tidak ditemukan'); await supabase.auth.signOut(); return }
-      if (profile.status === 'pending') { setError('Akun belum disetujui admin. Mohon tunggu.'); await supabase.auth.signOut(); return }
-      if (profile.status === 'rejected') { setError('Akun kamu ditolak oleh admin.'); await supabase.auth.signOut(); return }
-      const nextUrl = searchParams.get('next')
-
-      if (nextUrl) {
-          router.push(nextUrl)
+  useEffect(() => {
+    // Check if user has valid session from reset password link
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession()
+      if (data.session) {
+        setIsValidToken(true)
       } else {
-          if (profile.role === 'admin') router.push('/dashboard/admin')
-          else if (profile.role === 'bendahara') router.push('/dashboard/bendahara')
-          else router.push('/dashboard/member')
+        setError('Link reset password tidak valid atau sudah kadaluarsa. Silakan minta link baru.')
+        setIsValidToken(false)
       }
-    } catch (err) { setError('Terjadi kesalahan, coba lagi'); console.error(err) }
-    finally { setLoading(false) }
+    }
+
+    checkSession()
+  }, [searchParams])
+
+  const handleResetPassword = async () => {
+    if (!password || !confirmPassword) {
+      setError('Semua field wajib diisi')
+      return
+    }
+
+    if (password.length < 6) {
+      setError('Password minimal 6 karakter')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setError('Password dan konfirmasi password tidak cocok')
+      return
+    }
+
+    setLoading(true)
+    setError('')
+
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password,
+      })
+
+      if (updateError) {
+        setError(updateError.message)
+        return
+      }
+
+      setSuccess(true)
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
+    } catch (err) {
+      setError('Terjadi kesalahan, coba lagi')
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -51,7 +83,7 @@ function LoginForm() {
         .card{background:#ffffff;border:2px solid rgba(15,23,82,0.35);border-radius:28px;padding:32px 24px;width:100%;max-width:440px;position:relative;box-shadow:0 32px 80px rgba(30,58,138,0.08);}
         .icon-wrap{width:60px;height:60px;background:linear-gradient(135deg,#06b6d4,#22c55e);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 20px;color:#ffffff;}
         h1{font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:#0f172a;text-align:center;letter-spacing:-0.03em;}
-        .subtitle{color:#475569;font-size:14px;text-align:center;margin-top:6px;font-weight:400;}
+        .subtitle{color:#475569;font-size:14px;text-align:center;margin-top:6px;font-weight:400;line-height:1.6;}
         .form{display:flex;flex-direction:column;gap:18px;margin-top:32px;}
         label{display:block;font-size:11px;font-weight:600;color:#64748b;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;}
         input{width:100%;background:#f8fafc;border:2px solid rgba(15,23,82,0.35);border-radius:14px;padding:14px 16px;color:#0f172a;font-size:15px;font-family:'DM Sans',sans-serif;outline:none;transition:all 0.2s;}
@@ -61,6 +93,8 @@ function LoginForm() {
         .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 18px 36px rgba(14,165,233,0.25);}
         .btn:disabled{opacity:0.6;cursor:not-allowed;}
         .error{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.2);color:#b91c1c;padding:12px 14px;border-radius:12px;font-size:13px;margin-bottom:4px;}
+        .success{background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.2);color:#166534;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.6;}
+        .info{background:rgba(219,234,254,0.35);border:2px solid rgba(15,23,82,0.35);color:#0f172a;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.6;}
         .divider{height:2px;background:rgba(15,23,82,0.35);margin:28px 0;}
         .footer-text{text-align:center;font-size:13px;color:#64748b;}
         .footer-text a{color:#0ea5e9;text-decoration:none;font-weight:600;}
@@ -79,40 +113,63 @@ function LoginForm() {
           <div className="icon-wrap">
             <img src="/logo_ukm.jpg" alt="Logo UKM" />
           </div>
-          <h1>Masuk</h1>
-          <p className="subtitle">Portal Anggota UKM</p>
+          <h1>Reset Password</h1>
+          <p className="subtitle">Masukkan password baru untuk akun Anda</p>
           <div className="form">
             {error && <div className="error">{error}</div>}
-            <div>
-              <label>Email</label>
-              <input type="email" placeholder="nama@email.com" value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-            <div>
-              <label>Password</label>
-              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-            </div>
-            <div style={{textAlign: 'right', marginTop: '-8px'}}>
-              <Link href="/forgot-password" style={{fontSize: '13px', color: '#0ea5e9', textDecoration: 'none', fontWeight: '500'}}>
-                Lupa password?
-              </Link>
-            </div>
-            <button className="btn" onClick={handleLogin} disabled={loading}>
-              {loading ? 'Memproses...' : 'Masuk →'}
-            </button>
+            {success && (
+              <div className="success">
+                ✓ Password berhasil direset! Redirecting ke halaman login...
+              </div>
+            )}
+            {!success && isValidToken && (
+              <>
+                <div className="info">
+                  🔐 Password harus minimal 6 karakter untuk keamanan akun Anda.
+                </div>
+                <div>
+                  <label>Password Baru</label>
+                  <input
+                    type="password"
+                    placeholder="Minimal 6 karakter"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label>Konfirmasi Password</label>
+                  <input
+                    type="password"
+                    placeholder="Ulangi password"
+                    value={confirmPassword}
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleResetPassword()}
+                  />
+                </div>
+                <button
+                  className="btn"
+                  onClick={handleResetPassword}
+                  disabled={loading}
+                >
+                  {loading ? 'Memproses...' : 'Reset Password →'}
+                </button>
+              </>
+            )}
           </div>
           <div className="divider" />
-          <p className="footer-text">Belum punya akun? <Link href="/register">Daftar di sini</Link></p>
+          <p className="footer-text">
+            Kembali ke <Link href="/login">Masuk</Link>
+          </p>
         </div>
       </div>
     </>
   )
 }
 
-// 2. KITA BUAT FUNGSI EXPORT DEFAULT BARU YANG MEMBUNGKUS LoginForm DENGAN SUSPENSE
-export default function Login() {
+export default function ResetPassword() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Memuat halaman...</div>}>
-      <LoginForm />
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordForm />
     </Suspense>
   )
 }
