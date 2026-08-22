@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
-type Profile = { id: string; name: string; email: string; role: string; status: string }
+type Profile = { id: string; name: string; email: string; role: string; status: string; streak_count?: number; streak_last_date?: string; streak_last_week?: string }
 type Attendance = { id: string; user_id: string; date: string; status: string; photo_url?: string }
 type ActiveTab = 'members' | 'absen'
 
@@ -95,14 +95,62 @@ export default function AdminDashboard() {
   useEffect(()=>{if(activeTab==='absen') getAttendances()},[activeTab,getAttendances])
   useEffect(()=>{if(activeTab==='absen') getAttendances()},[selMonth,selYear,activeTab,getAttendances])
 
-  const updateStatus = async (id:string, status:string) => {
-    await supabase.from('profiles').update({status}).eq('id',id); getUsers()
+  const updateStatus = async (id: string, status: string) => {
+    const { error } = await supabase.from('profiles').update({ status }).eq('id', id)
+    
+    if (error) {
+      console.error('Gagal update status:', error.message)
+      alert('Gagal update status: ' + error.message)
+      return
+    }
+    
+    await getUsers()
   }
-  const updateRole = async (id:string, role:string) => {
-    await supabase.from('profiles').update({role}).eq('id',id); getUsers()
+  const updateRole = async (id: string, role: string) => {
+    const { error } = await supabase.from('profiles').update({ role }).eq('id', id)
+    
+    if (error) {
+      console.error('Gagal update role:', error.message)
+      alert('Gagal update role: ' + error.message)
+      return
+    }
+    
+    await getUsers()
   }
 
   const getWeekOfMonth = (dateStr:string) => Math.ceil(new Date(dateStr+'T00:00:00').getDate()/7)
+
+  // Helper functions for ISO Week (streak)
+  function getISOWeekString(date: Date): string {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const dayNum = d.getUTCDay() || 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+  }
+  function getPreviousISOWeekString(currentWeek: string): string {
+    const [year, week] = currentWeek.split('-W').map(Number)
+    let prevYear = year
+    let prevWeek = week - 1
+    if (prevWeek === 0) {
+      prevYear = year - 1
+      const dec31 = new Date(Date.UTC(prevYear, 11, 31))
+      const dayNum = dec31.getUTCDay() || 7
+      dec31.setUTCDate(dec31.getUTCDate() + 4 - dayNum)
+      const yearStart = new Date(Date.UTC(prevYear, 0, 1))
+      prevWeek = Math.ceil((((dec31.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    }
+    return `${prevYear}-W${String(prevWeek).padStart(2, '0')}`
+  }
+  function getWeeksDiff(date1: Date, date2: Date): number {
+    const week1 = getISOWeekString(date1)
+    const week2 = getISOWeekString(date2)
+    const [y1, w1] = week1.split('-W').map(Number)
+    const [y2, w2] = week2.split('-W').map(Number)
+    return (y2 - y1) * 52 + (w2 - w1)
+  }
+
   const lastDay = new Date(selYear, selMonth, 0).getDate()
 
   const allDates = Array.from({ length: lastDay }, (_, i) => {
@@ -291,6 +339,7 @@ export default function AdminDashboard() {
                         <th className="tl">Anggota</th>
                         <th>Role</th>
                         <th>Status</th>
+                        <th>🔥 Streak</th>
                         <th>Aksi</th>
                       </tr></thead>
                     <tbody>
@@ -301,13 +350,35 @@ export default function AdminDashboard() {
                           <td>
                             <select className="rsel" value={u.role} onChange={e=>updateRole(u.id,e.target.value)}>
                               <option value="member">Member</option>
-                              <option value="bendahara">Bendahara</option>
                               <option value="admin">Admin</option>
                             </select>
                           </td>
                           <td>
                             <span className={`badge ${u.status==='pending'?'bp':u.status==='approved'?'ba':'br'}`}>
                               {u.status==='pending'?'Menunggu':u.status==='approved'?'Disetujui':'Ditolak'}
+                            </span>
+                          </td>
+                          <td style={{textAlign: 'center'}}>
+                            <span style={{
+                              fontWeight: 700,
+                              color: (() => {
+                                if (!u.streak_last_date) return '#94a3b8'
+                                const lastDate = new Date(u.streak_last_date)
+                                const todayDate = new Date()
+                                const diffDays = Math.floor((todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
+                                const currentWeek = getISOWeekString(todayDate)
+                                let alive = false
+                                if (diffDays <= 1) alive = true
+                                else if (diffDays <= 7) {
+                                  if (u.streak_last_week === currentWeek || u.streak_last_week === getPreviousISOWeekString(currentWeek)) alive = true
+                                } else {
+                                  const weeksDiff = getWeeksDiff(lastDate, todayDate)
+                                  if (weeksDiff <= 1) alive = true
+                                }
+                                return alive ? '#22c55e' : '#ef4444'
+                              })()
+                            }}>
+                              {u.streak_count || 0} hari
                             </span>
                           </td>
                           <td>
