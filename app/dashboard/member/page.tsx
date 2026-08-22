@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 
 type Attendance = { id: string; date: string; status: string }
-type Profile = { name: string; email: string; role: string }
+type Profile = { name: string; email: string; role: string; streak_count?: number; streak_last_date?: string; streak_last_week?: string }
 
 export default function MemberDashboard() {
   const [profile, setProfile] = useState<Profile|null>(null)
@@ -22,7 +22,7 @@ export default function MemberDashboard() {
     if (!user){router.push('/login');return}
     setUserId(user.id)
 
-    const {data:p} = await supabase.from('profiles').select('name,email,role,status').eq('id',user.id).single()
+    const {data:p} = await supabase.from('profiles').select('name,email,role,status,streak_count,streak_last_date,streak_last_week').eq('id',user.id).single()
     if (!p||p.status!=='approved'){await supabase.auth.signOut();router.push('/login');return}
     setProfile(p)
 
@@ -40,6 +40,58 @@ export default function MemberDashboard() {
 
   const totalAbsen=attendances.length
   const bulanIni=attendances.filter(a=>a.date.startsWith(new Date().toISOString().slice(0,7))).length
+
+  // Streak logic
+  const streakCount = profile?.streak_count || 0
+  const streakLastDate = profile?.streak_last_date ? new Date(profile.streak_last_date) : null
+  const streakLastWeek = profile?.streak_last_week
+  const todayDate = new Date(today)
+  let streakAlive = false
+  
+  if (streakLastDate) {
+    const diffDays = Math.floor((todayDate.getTime() - streakLastDate.getTime()) / (1000 * 60 * 60 * 24))
+    const currentWeek = getISOWeekString(todayDate)
+    if (diffDays <= 1) {
+      streakAlive = true
+    } else if (diffDays <= 7) {
+      if (streakLastWeek === currentWeek || streakLastWeek === getPreviousISOWeekString(currentWeek)) {
+        streakAlive = true
+      }
+    } else {
+      const weeksDiff = getWeeksDiff(streakLastDate, todayDate)
+      if (weeksDiff <= 1) streakAlive = true
+    }
+  }
+
+  function getISOWeekString(date: Date): string {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const dayNum = d.getUTCDay() || 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+  }
+  function getPreviousISOWeekString(currentWeek: string): string {
+    const [year, week] = currentWeek.split('-W').map(Number)
+    let prevYear = year
+    let prevWeek = week - 1
+    if (prevWeek === 0) {
+      prevYear = year - 1
+      const dec31 = new Date(Date.UTC(prevYear, 11, 31))
+      const dayNum = dec31.getUTCDay() || 7
+      dec31.setUTCDate(dec31.getUTCDate() + 4 - dayNum)
+      const yearStart = new Date(Date.UTC(prevYear, 0, 1))
+      prevWeek = Math.ceil((((dec31.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    }
+    return `${prevYear}-W${String(prevWeek).padStart(2, '0')}`
+  }
+  function getWeeksDiff(date1: Date, date2: Date): number {
+    const week1 = getISOWeekString(date1)
+    const week2 = getISOWeekString(date2)
+    const [y1, w1] = week1.split('-W').map(Number)
+    const [y2, w2] = week2.split('-W').map(Number)
+    return (y2 - y1) * 52 + (w2 - w1)
+  }
 
   if (loading) return (
     <div style={{minHeight:'100vh',background:'linear-gradient(180deg,#ecfeff 0%,#f8fafc 100%)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Sans',sans-serif"}}>
@@ -127,6 +179,13 @@ export default function MemberDashboard() {
           <div className="grid2">
             <div className="card"><div className="clbl">Total Kehadiran</div><div className="cval">{totalAbsen}<span className="cunit">kali</span></div></div>
             <div className="card"><div className="clbl">Bulan Ini</div><div className="cval">{bulanIni}<span className="cunit">kali</span></div></div>
+            <div className="card" style={{gridColumn: '1 / -1', background: streakAlive ? 'linear-gradient(135deg,#d1fae5 0%,#a7f3d0 100%)' : 'linear-gradient(135deg,#fee2e2 0%,#fecaca 100%)', borderColor: streakAlive ? '#22c55e' : '#ef4444'}}>
+              <div className="clbl" style={{color: streakAlive ? '#065f46' : '#991b1b'}}>🔥 Streak</div>
+              <div className="cval" style={{color: streakAlive ? '#065f46' : '#991b1b'}}>{streakCount}<span className="cunit" style={{color: streakAlive ? '#047857' : '#b91c1c'}}>hari</span></div>
+              <div style={{fontSize:12, marginTop:8, color: streakAlive ? '#047857' : '#b91c1b'}}>
+                {streakAlive ? 'Streak hidup! Terus absen biar gak putus 💪' : 'Streak mati. Absen hari ini buat mulai lagi!'}
+              </div>
+            </div>
           </div>
 
           <div className="card" style={{marginBottom:16}}>

@@ -23,7 +23,6 @@ Fokus utama aplikasi adalah portal anggota UKM dengan halaman beranda, login, pe
   - `register/page.tsx` - halaman pendaftaran anggota
   - `dashboard/`
     - `admin/page.tsx` - dashboard role admin
-    - `bendahara/page.tsx` - dashboard role bendahara
     - `member/page.tsx` - dashboard role member
 - `lib/supabaseClient.ts` - inisialisasi client Supabase
 - `package.json` - dependensi dan skrip
@@ -81,7 +80,6 @@ npm start
 - `/login` - halaman login
 - `/register` - halaman pendaftaran
 - `/dashboard/admin` - dashboard admin
-- `/dashboard/bendahara` - dashboard bendahara
 - `/dashboard/member` - dashboard member
 
 Halaman login dan register adalah komponen client, sedangkan layout dan halaman beranda memakai App Router Next.js.
@@ -93,21 +91,20 @@ Login menggunakan Supabase auth:
 - `supabase.auth.signUp` di `app/register/page.tsx`
 
 Setelah login, aplikasi mengambil `profiles` dari tabel Supabase:
-- `role` untuk menentukan `/dashboard/admin`, `/dashboard/bendahara`, atau `/dashboard/member`
+- `role` untuk menentukan `/dashboard/admin` atau `/dashboard/member`
 - `status` untuk memeriksa apakah akun `pending`, `approved`, atau `rejected`
 
 Logika utama:
 - `pending` → tidak dapat masuk sampai admin setujui
 - `rejected` → akun tidak bisa masuk
 - `admin` → redirect ke `/dashboard/admin`
-- `bendahara` → redirect ke `/dashboard/bendahara`
 - selain itu → redirect ke `/dashboard/member`
 
 ## Data dan Struktur Supabase yang Diperlukan
 
 Aplikasi mengharapkan tabel `profiles` di Supabase dengan setidaknya kolom:
 - `id` (UUID user Supabase)
-- `role` (`admin`, `bendahara`, `member`)
+- `role` (`admin`, `member`)
 - `status` (`pending`, `approved`, `rejected`)
 - `name` (nama lengkap, dikirim saat sign-up)
 

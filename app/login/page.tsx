@@ -15,29 +15,41 @@ function LoginForm() {
   const searchParams = useSearchParams()
 
   const handleLogin = async () => {
-    if (!email || !password) { setError('Email dan password wajib diisi'); return }
-    setLoading(true); setError('')
-    try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-      if (signInError) { setError('Email atau password salah'); return }
-      if (!data.user) { setError('Login gagal'); return }
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles').select('role, status').eq('id', data.user.id).single()
-      if (profileError || !profile) { setError('Profil akun tidak ditemukan'); await supabase.auth.signOut(); return }
-      if (profile.status === 'pending') { setError('Akun belum disetujui admin. Mohon tunggu.'); await supabase.auth.signOut(); return }
-      if (profile.status === 'rejected') { setError('Akun kamu ditolak oleh admin.'); await supabase.auth.signOut(); return }
-      const nextUrl = searchParams.get('next')
+      if (!email || !password) { setError('Email dan password wajib diisi'); return }
+      setLoading(true); setError('')
+      try {
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInError) { setError('Email atau password salah'); return }
+        if (!data.user) { setError('Login gagal'); return }
 
-      if (nextUrl) {
-          router.push(nextUrl)
-      } else {
-          if (profile.role === 'admin') router.push('/dashboard/admin')
-          else if (profile.role === 'bendahara') router.push('/dashboard/bendahara')
-          else router.push('/dashboard/member')
-      }
-    } catch (err) { setError('Terjadi kesalahan, coba lagi'); console.error(err) }
-    finally { setLoading(false) }
-  }
+        // Pastikan session sudah ter-set di client sebelum query profiles
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) { setError('Session tidak ditemukan, coba login lagi'); return }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles').select('role, status').eq('id', data.user.id).single()
+      
+        // Log error detail untuk debugging
+        if (profileError) {
+          console.error('Profile query error:', profileError)
+          setError('Gagal memuat profil: ' + profileError.message)
+          await supabase.auth.signOut()
+          return
+        }
+        if (!profile) { setError('Profil akun tidak ditemukan'); await supabase.auth.signOut(); return }
+        if (profile.status === 'pending') { setError('Akun belum disetujui admin. Mohon tunggu.'); await supabase.auth.signOut(); return }
+        if (profile.status === 'rejected') { setError('Akun kamu ditolak oleh admin.'); await supabase.auth.signOut(); return }
+        const nextUrl = searchParams.get('next')
+
+        if (nextUrl) {
+                  router.push(nextUrl)
+              } else {
+                  if (profile.role === 'admin') router.push('/dashboard/admin')
+                  else router.push('/dashboard/member')
+              }
+      } catch (err) { setError('Terjadi kesalahan, coba lagi'); console.error(err) }
+      finally { setLoading(false) }
+    }
 
   return (
     <>
