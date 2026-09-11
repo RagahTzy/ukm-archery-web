@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 
 type Profile = { id: string; name: string; email: string; role: string; status: string; streak_count?: number; streak_last_date?: string; streak_last_week?: string }
 type Attendance = { id: string; user_id: string; date: string; status: string; photo_url?: string }
-type ActiveTab = 'members' | 'absen'
+type ActiveTab = 'members' | 'absen' | 'scoring'
 
 const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
 
@@ -312,6 +312,7 @@ export default function AdminDashboard() {
           <div style={{display:'flex',gap:4,background:'#f8fafc',border:'2px solid rgba(15,23,82,0.35)',borderRadius:12,padding:4,marginBottom:28,width:'fit-content'}}>
             <button className={`tab-btn ${activeTab==='members'?'on':''}`} onClick={()=>setActiveTab('members')}>👥 Manajemen Anggota</button>
             <button className={`tab-btn ${activeTab==='absen'?'on':''}`} onClick={()=>{setActiveTab('absen');getAttendances()}}>📋 Rekap Absensi</button>
+            <button className={`tab-btn ${activeTab==='scoring'?'on':''}`} onClick={()=>{setActiveTab('scoring');router.push('/dashboard/admin/scoring')}}>🏹 Scoring Panahan</button>
           </div>
 
           {activeTab==='members' && (
