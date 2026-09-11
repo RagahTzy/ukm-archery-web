@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Leaderboard from '@/components/Leaderboard'
 
 type Profile = { id: string; name: string; email: string; role: string; status: string; streak_count?: number; streak_last_date?: string; streak_last_week?: string }
 type Attendance = { id: string; user_id: string; date: string; status: string; photo_url?: string }
@@ -401,6 +402,9 @@ export default function AdminDashboard() {
 
           {activeTab==='absen' && (
             <>
+              <div className="card" style={{marginBottom:16}}>
+                <Leaderboard limit={10} title="Leaderboard Scoring" />
+              </div>
               <div className="ctrl">
                 <span className="cl">Bulan:</span>
                 <select className="cs" value={selMonth} onChange={e=>setSelMonth(Number(e.target.value))}>

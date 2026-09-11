@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
+import Leaderboard from '@/components/Leaderboard'
 
 type Attendance = { id: string; date: string; status: string }
 type Profile = { name: string; email: string; role: string; streak_count?: number; streak_last_date?: string; streak_last_week?: string }
@@ -224,6 +225,10 @@ export default function MemberDashboard() {
             <button className="btn-absen" onClick={handleJoinScoring} style={{background: 'linear-gradient(135deg,#f59e0b 0%,#f97316 50%,#ef4444 100%)'}}>
               🏹 Gabung Scoring Session
             </button>
+          </div>
+
+          <div className="card" style={{marginBottom:16}}>
+            <Leaderboard limit={5} title="Leaderboard Teratas" />
           </div>
 
           <div className="card">
