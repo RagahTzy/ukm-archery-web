@@ -17,6 +17,10 @@ export default function MemberDashboard() {
   const router = useRouter()
   const today = new Date().toISOString().split('T')[0]
 
+  const handleJoinScoring = () => {
+    router.push('/dashboard/member/scoring/join')
+  }
+
   const loadData = useCallback(async () => {
     const {data:{user}} = await supabase.auth.getUser()
     if (!user){router.push('/login');return}
@@ -210,6 +214,16 @@ export default function MemberDashboard() {
                 {absenLoading?'Memproses...':'Absen Sekarang →'}
               </button>
             )}
+          </div>
+
+          <div className="card" style={{marginBottom:16}}>
+            <div style={{fontSize:15,fontWeight:600,color:'#0f172a',marginBottom:4}}>Scoring Panahan</div>
+            <div style={{fontSize:12,color:'#64748b',marginBottom:20}}>
+              Gabung ke sesi scoring menggunakan kode dari admin
+            </div>
+            <button className="btn-absen" onClick={handleJoinScoring} style={{background: 'linear-gradient(135deg,#f59e0b 0%,#f97316 50%,#ef4444 100%)'}}>
+              🏹 Gabung Scoring Session
+            </button>
           </div>
 
           <div className="card">
