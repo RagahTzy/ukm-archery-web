@@ -227,6 +227,16 @@ CREATE POLICY scoring_participants_user_join ON scoring_participants
 CREATE POLICY scoring_participants_user_read_own ON scoring_participants
   FOR SELECT USING (auth.uid() = user_id);
 
+-- Member can read all participants in active/completed sessions (for leaderboard)
+CREATE POLICY scoring_participants_member_read_session ON scoring_participants
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM scoring_sessions
+      WHERE id = scoring_participants.session_id
+      AND (status = 'active' OR status = 'completed')
+    )
+  );
+
 -- ============================================
 -- POLICIES: scoring_scores
 -- ============================================
@@ -243,9 +253,20 @@ CREATE POLICY scoring_scores_admin_all ON scoring_scores
 CREATE POLICY scoring_scores_user_read_own ON scoring_scores
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM scoring_participants 
-      WHERE id = scoring_scores.participant_id 
+      SELECT 1 FROM scoring_participants
+      WHERE id = scoring_scores.participant_id
       AND user_id = auth.uid()
+    )
+  );
+
+-- Member can read all scores in active/completed sessions (for leaderboard)
+CREATE POLICY scoring_scores_member_read_session ON scoring_scores
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM scoring_participants sp
+      JOIN scoring_sessions ss ON sp.session_id = ss.id
+      WHERE sp.id = scoring_scores.participant_id
+      AND (ss.status = 'active' OR ss.status = 'completed')
     )
   );
 
