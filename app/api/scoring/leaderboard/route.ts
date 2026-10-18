@@ -113,6 +113,11 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // DEBUG: Log first participant's session data
+  if (participants && participants.length > 0) {
+    console.log('[LEADERBOARD DEBUG] First participant session:', JSON.stringify(participants[0].scoring_sessions?.[0], null, 2))
+  }
+
   // Calculate totals and rankings
   const leaderboard = (participants || []).map((p: {
     id: string;
