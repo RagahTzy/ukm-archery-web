@@ -15,7 +15,7 @@ type ScoringSession = {
   code: string
   arrows_per_round: number
   rounds_per_session: number
-  distance: number
+  distance?: number
   status: 'draft' | 'active' | 'completed'
   created_at: string
   updated_at: string
@@ -593,7 +593,7 @@ export default function ScoringListPage() {
 
                         <td><span className="code-badge">{s.code}</span></td>
 
-                        <td><span className="code-badge" style={{background:'#fff3e0',color:'#e65100'}}>{s.distance}m</span></td>
+                        <td><span className="code-badge" style={{background:'#fff3e0',color:'#e65100'}}>{s.distance ?? 30}m</span></td>
 
                         <td>
 

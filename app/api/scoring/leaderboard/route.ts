@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       code: string;
       arrows_per_round: number;
       rounds_per_session: number;
-      distance: number;
+      distance?: number;
       status: string
     }[];
     scoring_scores: Array<{ score: number }>

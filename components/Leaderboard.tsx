@@ -10,7 +10,7 @@ type LeaderboardEntry = {
   session_id: string
   session_name: string
   session_code: string
-  session_distance: number
+  session_distance?: number
   total_score: number
   arrows_entered: number
   total_arrows: number
@@ -347,7 +347,7 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
                   <div className="leaderboard-meta">
                     {showSessionName && <span>📋 {entry.session_name}</span>}
                     <span>🏹 {entry.arrows_entered} Arrow</span>
-                    <span>🎯 {entry.session_distance}m</span>
+                    <span>🎯 {entry.session_distance ?? 30}m</span>
                     <span>⭐ Avg: {entry.avg_score}</span>
                   </div>
                 </div>

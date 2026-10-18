@@ -7,7 +7,7 @@ import { useRouter, useParams } from 'next/navigation'
 type SessionConfig = {
   arrows_per_round: number
   rounds_per_session: number
-  distance: number
+  distance?: number
 }
 
 type Participant = {
@@ -282,7 +282,7 @@ export default function ScoringInputPage() {
           <div className="info-row">
             <div className="info-item">Rambahan <strong>{currentRound} / {session.rounds_per_session}</strong></div>
             <div className="info-item">Arrow <strong>{session.arrows_per_round} per Rambahan</strong></div>
-            <div className="info-item">Jarak <strong>{session.distance}m</strong></div>
+            <div className="info-item">Jarak <strong>{session.distance ?? 30}m</strong></div>
             <div className="info-item">Total Rambahan <strong>{roundTotals[currentRound] || 0}</strong></div>
             <div className="info-item">Grand Total <strong>{grandTotal}</strong></div>
           </div>
