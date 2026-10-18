@@ -6,8 +6,7 @@ import { useRouter, useParams } from 'next/navigation'
 
 type SessionConfig = {
   arrows_per_round: number
-  rounds_per_set: number
-  sets: number
+  rounds_per_session: number
 }
 
 type Participant = {
@@ -16,21 +15,13 @@ type Participant = {
 }
 
 type ScoreData = {
-  [setNum: number]: {
-    [roundNum: number]: {
-      [arrowNum: number]: number
-    }
+  [roundNum: number]: {
+    [arrowNum: number]: number
   }
 }
 
 type RoundTotals = {
-  [setNum: number]: {
-    [roundNum: number]: number
-  }
-}
-
-type SetTotals = {
-  [setNum: number]: number
+  [roundNum: number]: number
 }
 
 export default function ScoringInputPage() {
@@ -45,7 +36,6 @@ export default function ScoringInputPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [currentSet, setCurrentSet] = useState(1)
   const [currentRound, setCurrentRound] = useState(1)
 
   // Fetch data
@@ -66,16 +56,12 @@ export default function ScoringInputPage() {
       // Convert scores object to nested structure
       const scoreStructure: ScoreData = {}
       if (json.scores) {
-        Object.keys(json.scores).forEach(setKey => {
-          const setNum = parseInt(setKey)
-          scoreStructure[setNum] = {}
-          Object.keys(json.scores[setKey]).forEach(roundKey => {
-            const roundNum = parseInt(roundKey)
-            scoreStructure[setNum][roundNum] = {}
-            Object.keys(json.scores[setKey][roundKey]).forEach(arrowKey => {
-              const arrowNum = parseInt(arrowKey)
-              scoreStructure[setNum][roundNum][arrowNum] = json.scores[setKey][roundKey][arrowKey]
-            })
+        Object.keys(json.scores).forEach(roundKey => {
+          const roundNum = parseInt(roundKey)
+          scoreStructure[roundNum] = {}
+          Object.keys(json.scores[roundKey]).forEach(arrowKey => {
+            const arrowNum = parseInt(arrowKey)
+            scoreStructure[roundNum][arrowNum] = json.scores[roundKey][arrowNum]
           })
         })
       }
@@ -90,40 +76,31 @@ export default function ScoringInputPage() {
   useEffect(() => { fetchData() }, [fetchData])
 
   // Computed totals
-  const { roundTotals, setTotals, grandTotal } = useMemo(() => {
-    if (!session) return { roundTotals: {} as RoundTotals, setTotals: {} as SetTotals, grandTotal: 0 }
+  const { roundTotals, grandTotal } = useMemo(() => {
+    if (!session) return { roundTotals: {} as RoundTotals, grandTotal: 0 }
     
     const rt: RoundTotals = {}
-    const st: SetTotals = {}
     let gt = 0
     
-    for (let set = 1; set <= session.sets; set++) {
-      rt[set] = {}
-      st[set] = 0
-      for (let round = 1; round <= session.rounds_per_set; round++) {
-        let roundTotal = 0
-        for (let arrow = 1; arrow <= session.arrows_per_round; arrow++) {
-          roundTotal += scores[set]?.[round]?.[arrow] || 0
-        }
-        rt[set][round] = roundTotal
-        st[set] += roundTotal
+    for (let round = 1; round <= session.rounds_per_session; round++) {
+      let roundTotal = 0
+      for (let arrow = 1; arrow <= session.arrows_per_round; arrow++) {
+        roundTotal += scores[round]?.[arrow] || 0
       }
-      gt += st[set]
+      rt[round] = roundTotal
+      gt += roundTotal
     }
     
-    return { roundTotals: rt, setTotals: st, grandTotal: gt }
+    return { roundTotals: rt, grandTotal: gt }
   }, [session, scores])
 
   // Handle score change
-  const handleScoreChange = (setNum: number, roundNum: number, arrowNum: number, value: number) => {
+  const handleScoreChange = (roundNum: number, arrowNum: number, value: number) => {
     setScores(prev => ({
       ...prev,
-      [setNum]: {
-        ...prev[setNum],
-        [roundNum]: {
-          ...prev[setNum]?.[roundNum],
-          [arrowNum]: Math.max(0, Math.min(10, value))
-        }
+      [roundNum]: {
+        ...prev[roundNum],
+        [arrowNum]: Math.max(0, Math.min(10, value))
       }
     }))
     setSaved(false)
@@ -137,14 +114,12 @@ export default function ScoringInputPage() {
       const { data: { session: authSession } } = await supabase.auth.getSession()
       
       // Flatten scores for API
-      const flatScores: Array<{ set_number: number; round_number: number; arrow_number: number; score: number }> = []
-      for (let set = 1; set <= session.sets; set++) {
-        for (let round = 1; round <= session.rounds_per_set; round++) {
-          for (let arrow = 1; arrow <= session.arrows_per_round; arrow++) {
-            const score = scores[set]?.[round]?.[arrow] || 0
-            if (score > 0 || score === 0) { // Include zeros
-              flatScores.push({ set_number: set, round_number: round, arrow_number: arrow, score })
-            }
+      const flatScores: Array<{ round_number: number; arrow_number: number; score: number }> = []
+      for (let round = 1; round <= session.rounds_per_session; round++) {
+        for (let arrow = 1; arrow <= session.arrows_per_round; arrow++) {
+          const score = scores[round]?.[arrow] || 0
+          if (score > 0 || score === 0) { // Include zeros
+            flatScores.push({ round_number: round, arrow_number: arrow, score })
           }
         }
       }
@@ -171,11 +146,6 @@ export default function ScoringInputPage() {
   }
 
   // Navigation
-  const goToSet = (setNum: number) => {
-    setCurrentSet(setNum)
-    setCurrentRound(1)
-  }
-  
   const goToRound = (roundNum: number) => {
     setCurrentRound(roundNum)
   }
@@ -183,18 +153,12 @@ export default function ScoringInputPage() {
   const prevRound = () => {
     if (currentRound > 1) {
       setCurrentRound(currentRound - 1)
-    } else if (currentSet > 1) {
-      setCurrentSet(currentSet - 1)
-      setCurrentRound(session?.rounds_per_set || 1)
     }
   }
   
   const nextRound = () => {
-    if (currentRound < (session?.rounds_per_set || 1)) {
+    if (currentRound < (session?.rounds_per_session || 1)) {
       setCurrentRound(currentRound + 1)
-    } else if (currentSet < (session?.sets || 1)) {
-      setCurrentSet(currentSet + 1)
-      setCurrentRound(1)
     }
   }
 
@@ -217,10 +181,9 @@ export default function ScoringInputPage() {
   }
 
   const arrows = Array.from({length: session.arrows_per_round}, (_, i) => i + 1)
-  const sets = Array.from({length: session.sets}, (_, i) => i + 1)
-  const rounds = Array.from({length: session.rounds_per_set}, (_, i) => i + 1)
+  const rounds = Array.from({length: session.rounds_per_session}, (_, i) => i + 1)
 
-  const getScore = (setNum: number, roundNum: number, arrowNum: number) => scores[setNum]?.[roundNum]?.[arrowNum] || 0
+  const getScore = (roundNum: number, arrowNum: number) => scores[roundNum]?.[arrowNum] || 0
 
   const S = {
     layout: { minHeight: '100vh', background: '#f8fbff', color: '#0f172a', fontFamily: "'DM Sans',sans-serif" },
@@ -286,25 +249,10 @@ export default function ScoringInputPage() {
         <div style={S.content}>
           {/* Info Bar */}
           <div className="info-row">
-            <div className="info-item">Set <strong>{currentSet} / {session.sets}</strong></div>
-            <div className="info-item">Rambahan <strong>{currentRound} / {session.rounds_per_set}</strong></div>
+            <div className="info-item">Rambahan <strong>{currentRound} / {session.rounds_per_session}</strong></div>
             <div className="info-item">Arrow <strong>{session.arrows_per_round} per Rambahan</strong></div>
-            <div className="info-item">Total Set <strong>{setTotals[currentSet] || 0}</strong></div>
+            <div className="info-item">Total Rambahan <strong>{roundTotals[currentRound] || 0}</strong></div>
             <div className="info-item">Grand Total <strong>{grandTotal}</strong></div>
-          </div>
-
-          {/* Set Navigation */}
-          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:20}}>
-            {sets.map(setNum => (
-              <button
-                key={setNum}
-                className={`nav-btn ${currentSet === setNum ? 'active' : 'inactive'}`}
-                onClick={() => goToSet(setNum)}
-                disabled={currentSet !== setNum && (setTotals[setNum] || 0) === 0 && sets.some(s => s > setNum && (setTotals[s] || 0) > 0)}
-              >
-                Set {setNum} <span className="set-badge">{setTotals[setNum] || 0}</span>
-              </button>
-            ))}
           </div>
 
           {/* Round Navigation */}
@@ -315,7 +263,7 @@ export default function ScoringInputPage() {
                 className={`nav-btn ${currentRound === roundNum ? 'active' : 'inactive'}`}
                 onClick={() => goToRound(roundNum)}
               >
-                Rambahan {roundNum} <span className="total-badge">{roundTotals[currentSet]?.[roundNum] || 0}</span>
+                Rambahan {roundNum} <span className="total-badge">{roundTotals[roundNum] || 0}</span>
               </button>
             ))}
           </div>
@@ -323,12 +271,12 @@ export default function ScoringInputPage() {
           {/* Arrow Input Grid */}
           <div style={S.card}>
             <div className="round-header">
-              Set {currentSet} — Rambahan {currentRound} / {session.rounds_per_set}
+              Rambahan {currentRound} / {session.rounds_per_session}
             </div>
             
             <div className="arrow-grid" style={{gridTemplateColumns: `repeat(${session.arrows_per_round}, 1fr)`}}>
               {arrows.map(arrowNum => {
-                const score = getScore(currentSet, currentRound, arrowNum)
+                const score = getScore(currentRound, arrowNum)
                 return (
                   <div key={arrowNum} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
                     <div className="arrow-label">Arrow {arrowNum}</div>
@@ -338,12 +286,12 @@ export default function ScoringInputPage() {
                       min="0"
                       max="10"
                       value={score}
-                      onChange={e => handleScoreChange(currentSet, currentRound, arrowNum, parseInt(e.target.value) || 0)}
+                      onChange={e => handleScoreChange(currentRound, arrowNum, parseInt(e.target.value) || 0)}
                       onBlur={e => {
                         const v = parseInt(e.target.value) || 0
-                        if (v > 10) handleScoreChange(currentSet, currentRound, arrowNum, 10)
-                        else if (v < 0) handleScoreChange(currentSet, currentRound, arrowNum, 0)
-                        else handleScoreChange(currentSet, currentRound, arrowNum, v)
+                        if (v > 10) handleScoreChange(currentRound, arrowNum, 10)
+                        else if (v < 0) handleScoreChange(currentRound, arrowNum, 0)
+                        else handleScoreChange(currentRound, arrowNum, v)
                       }}
                     />
                     <div style={{fontSize:11,color: score > 0 ? '#22c55e' : '#94a3b8'}}>
@@ -357,11 +305,11 @@ export default function ScoringInputPage() {
             {/* Round Total */}
             <div style={{marginTop:20,paddingTop:16,borderTop:'2px solid rgba(15,23,82,0.15)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,color:'#0f172a',fontWeight:700}}>
-                Total Rambahan: <span style={{color:'#06b6d4'}}>{roundTotals[currentSet]?.[currentRound] || 0}</span>
+                Total Rambahan: <span style={{color:'#06b6d4'}}>{roundTotals[currentRound] || 0}</span>
               </div>
               <div style={{display:'flex',gap:8}}>
-                <button className="nav-btn inactive" onClick={prevRound} disabled={currentSet===1 && currentRound===1}>← Sebelumnya</button>
-                <button className="nav-btn inactive" onClick={nextRound} disabled={currentSet===session.sets && currentRound===session.rounds_per_set}>Selanjutnya →</button>
+                <button className="nav-btn inactive" onClick={prevRound} disabled={currentRound===1}>← Sebelumnya</button>
+                <button className="nav-btn inactive" onClick={nextRound} disabled={currentRound===session.rounds_per_session}>Selanjutnya →</button>
               </div>
             </div>
           </div>
@@ -371,10 +319,10 @@ export default function ScoringInputPage() {
             <div style={{fontFamily:"'Playfair Display',serif",fontSize:20,color:'#0f172a',fontWeight:700,marginBottom:16}}>Ringkasan Scoring</div>
             
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:16}}>
-              {sets.map(setNum => (
-                <div key={setNum} style={{background:'#f8fafc',border:'1px solid rgba(15,23,82,0.15)',borderRadius:12,padding:'16px',textAlign:'center'}}>
-                  <div style={{fontSize:11,fontWeight:600,color:'#64748b',letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:4}}>Set {setNum}</div>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,color:'#0f172a'}}>{setTotals[setNum] || 0}</div>
+              {rounds.map(roundNum => (
+                <div key={roundNum} style={{background:'#f8fafc',border:'1px solid rgba(15,23,82,0.15)',borderRadius:12,padding:'16px',textAlign:'center'}}>
+                  <div style={{fontSize:11,fontWeight:600,color:'#64748b',letterSpacing:'0.05em',textTransform:'uppercase',marginBottom:4}}>Rambahan {roundNum}</div>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:700,color:'#0f172a'}}>{roundTotals[roundNum] || 0}</div>
                 </div>
               ))}
             </div>
@@ -382,7 +330,7 @@ export default function ScoringInputPage() {
             <div style={{textAlign:'center',paddingTop:16,borderTop:'2px solid rgba(15,23,82,0.15)'}}>
               <div className="grand-badge">Grand Total: {grandTotal}</div>
               <div style={{marginTop:8,fontSize:13,color:'#64748b'}}>
-                {Object.values(scores).flatMap(s => Object.values(s).flatMap(r => Object.values(r))).filter(v => v > 0).length} / {session.arrows_per_round * session.rounds_per_set * session.sets} Arrow diisi
+                {Object.values(scores).flatMap(r => Object.values(r)).filter(v => v > 0).length} / {session.arrows_per_round * session.rounds_per_session} Arrow diisi
               </div>
             </div>
           </div>

@@ -3,30 +3,69 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  global: {
-    fetch: (url, options = {}) => {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
-      return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId))
-    }
+
+// Create a Supabase client with custom fetch that injects the user's JWT for RLS
+function createUserSupabase(token: string) {
+  return createClient(supabaseUrl, supabaseKey, {
+    global: {
+      fetch: (url, options = {}) => {
+        // In Next.js API routes, Supabase client doesn't pass headers to custom fetch
+        // We MUST manually inject BOTH apikey and user's JWT Authorization
+        const incoming = Object.fromEntries(new Headers(options.headers).entries())
+        // Remove any existing Authorization header to avoid duplicates
+        const { authorization, Authorization, ...cleanIncoming } = incoming
+        const headers = {
+          ...cleanIncoming,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${token}`,  // Only set ONCE
+        }
+        return fetch(url, {
+          ...options,
+          headers,
+        })
+      },
+    },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
+// Helper: get user from token by calling auth endpoint directly
+async function getUserFromToken(token: string) {
+  const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  if (!res.ok) {
+    const error = await res.json()
+    return { user: null, error: { message: error.msg || 'Invalid token' } }
   }
-})
+  return { user: await res.json(), error: null }
+}
 
 async function verifyUser(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader) return { error: 'Unauthorized', status: 401 }
   
   const token = authHeader.replace('Bearer ', '')
-  const { data: { user }, error } = await supabase.auth.getUser(token)
-  if (error || !user) return { error: 'Unauthorized', status: 401 }
   
-  const { data: profile } = await supabase.from('profiles').select('name, role, status').eq('id', user.id).single()
+  // Create client with user's token for proper RLS context
+  const userSupabase = createUserSupabase(token)
+  
+  // Get user by calling auth endpoint directly (bypasses internal auth client)
+  const { user, error: authError } = await getUserFromToken(token)
+  if (authError || !user) return { error: 'Unauthorized', status: 401 }
+  
+  const { data: profile } = await userSupabase.from('profiles').select('name, role, status').eq('id', user.id).single()
   if (!profile || profile.status !== 'approved') {
     return { error: 'Forbidden: Account not approved', status: 403 }
   }
   
-  return { user, profile }
+  return { user, profile, userSupabase }
 }
 
 // GET - Get session info by code (for join page)
@@ -41,9 +80,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Kode scoring diperlukan' }, { status: 400 })
   }
   
-  const { data: session, error } = await supabase
+  const { data: session, error } = await auth.userSupabase
     .from('scoring_sessions')
-    .select('id, name, code, arrows_per_round, rounds_per_set, sets, status')
+    .select('id, name, code, arrows_per_round, rounds_per_session, status')
     .eq('code', code.toUpperCase())
     .single()
   
@@ -56,7 +95,7 @@ export async function GET(request: NextRequest) {
   }
   
   // Check if user already joined
-  const { data: existing } = await supabase
+  const { data: existing } = await auth.userSupabase
     .from('scoring_participants')
     .select('id')
     .eq('session_id', session.id)
@@ -66,7 +105,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     session: {
       ...session,
-      total_arrows: session.arrows_per_round * session.rounds_per_set * session.sets
+      total_arrows: session.arrows_per_round * session.rounds_per_session
     },
     already_joined: !!existing,
     user_name: auth.profile.name
@@ -86,7 +125,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Kode scoring diperlukan' }, { status: 400 })
     }
     
-    const { data: session, error: sessionError } = await supabase
+    const { data: session, error: sessionError } = await auth.userSupabase
       .from('scoring_sessions')
       .select('id, name, code, status')
       .eq('code', code.toUpperCase())
@@ -101,7 +140,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if already joined
-    const { data: existing } = await supabase
+    const { data: existing } = await auth.userSupabase
       .from('scoring_participants')
       .select('id')
       .eq('session_id', session.id)
@@ -113,7 +152,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Join session
-    const { data: participant, error: joinError } = await supabase
+    const { data: participant, error: joinError } = await auth.userSupabase
       .from('scoring_participants')
       .insert({
         session_id: session.id,

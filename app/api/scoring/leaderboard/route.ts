@@ -3,30 +3,69 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey, {
-  global: {
-    fetch: (url, options = {}) => {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
-      return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeoutId))
-    }
+
+// Create a Supabase client with custom fetch that injects the user's JWT for RLS
+function createUserSupabase(token: string) {
+  return createClient(supabaseUrl, supabaseKey, {
+    global: {
+      fetch: (url, options = {}) => {
+        // In Next.js API routes, Supabase client doesn't pass headers to custom fetch
+        // We MUST manually inject BOTH apikey and user's JWT Authorization
+        const incoming = Object.fromEntries(new Headers(options.headers).entries())
+        // Remove any existing Authorization header to avoid duplicates
+        const { authorization, Authorization, ...cleanIncoming } = incoming
+        const headers = {
+          ...cleanIncoming,
+          apikey: supabaseKey,
+          Authorization: `Bearer ${token}`,  // Only set ONCE
+        }
+        return fetch(url, {
+          ...options,
+          headers,
+        })
+      },
+    },
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
+// Helper: get user from token by calling auth endpoint directly
+async function getUserFromToken(token: string) {
+  const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      apikey: supabaseKey,
+      Authorization: `Bearer ${token}`,
+    },
+  })
+  if (!res.ok) {
+    const error = await res.json()
+    return { user: null, error: { message: error.msg || 'Invalid token' } }
   }
-})
+  return { user: await res.json(), error: null }
+}
 
 async function verifyUser(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader) return { error: 'Unauthorized', status: 401 }
   
   const token = authHeader.replace('Bearer ', '')
-  const { data: { user }, error } = await supabase.auth.getUser(token)
-  if (error || !user) return { error: 'Unauthorized', status: 401 }
   
-  const { data: profile } = await supabase.from('profiles').select('role, status').eq('id', user.id).single()
+  // Create client with user's token for proper RLS context
+  const userSupabase = createUserSupabase(token)
+  
+  // Get user by calling auth endpoint directly (bypasses internal auth client)
+  const { user, error: authError } = await getUserFromToken(token)
+  if (authError || !user) return { error: 'Unauthorized', status: 401 }
+  
+  const { data: profile } = await userSupabase.from('profiles').select('role, status').eq('id', user.id).single()
   if (!profile || profile.status !== 'approved') {
     return { error: 'Forbidden: Account not approved', status: 403 }
   }
   
-  return { user, profile }
+  return { user, profile, userSupabase }
 }
 
 export async function GET(request: NextRequest) {
@@ -38,7 +77,7 @@ export async function GET(request: NextRequest) {
   const limit = parseInt(searchParams.get('limit') || '10')
   
   // Build query for participant scores with totals
-  let query = supabase
+  let query = auth.userSupabase
     .from('scoring_participants')
     .select(`
       id,
@@ -51,15 +90,14 @@ export async function GET(request: NextRequest) {
         name,
         code,
         arrows_per_round,
-        rounds_per_set,
-        sets,
+        rounds_per_session,
         status
       ),
       scoring_scores (
         score
       )
     `)
-    .eq('scoring_sessions.status', 'completed') // Only show completed sessions
+    .eq('scoring_sessions.status', 'completed')
   
   if (sessionId) {
     query = query.eq('session_id', sessionId)
@@ -81,8 +119,7 @@ export async function GET(request: NextRequest) {
       name: string; 
       code: string; 
       arrows_per_round: number; 
-      rounds_per_set: number; 
-      sets: number; 
+      rounds_per_session: number; 
       status: string 
     }[]; 
     scoring_scores: Array<{ score: number }> 
@@ -91,7 +128,7 @@ export async function GET(request: NextRequest) {
     const session = p.scoring_sessions?.[0]
     const totalScore = scores.reduce((sum: number, s: { score: number }) => sum + s.score, 0)
     const totalArrows = scores.length
-    const expectedArrows = session?.arrows_per_round * session?.rounds_per_set * session?.sets || 0
+    const expectedArrows = session?.arrows_per_round * session?.rounds_per_session || 0
     const avgScore = totalArrows > 0 ? totalScore / totalArrows : 0
     
     return {

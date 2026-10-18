@@ -42,8 +42,7 @@ CREATE TABLE scoring_sessions (
   name TEXT NOT NULL,                    -- Nama/Judul Scoring (contoh: "Latihan Panahan Minggu Pagi")
   code TEXT NOT NULL UNIQUE,             -- Kode unik 6 karakter (contoh: "A7K92P")
   arrows_per_round INTEGER NOT NULL DEFAULT 6,   -- Jumlah Arrow per Rambahan
-  rounds_per_set INTEGER NOT NULL DEFAULT 5,     -- Jumlah Rambahan per Set
-  sets INTEGER NOT NULL DEFAULT 3,               -- Jumlah Set
+  rounds_per_session INTEGER NOT NULL DEFAULT 5, -- Jumlah Rambahan per Sesi (tanpa Set)
   status TEXT NOT NULL DEFAULT 'draft',          -- Status: draft, active, completed
   created_by UUID NOT NULL REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -71,22 +70,21 @@ CREATE INDEX idx_scoring_participants_session_id ON scoring_participants(session
 CREATE INDEX idx_scoring_participants_user_id ON scoring_participants(user_id);
 
 -- 3. SCORING SCORES
--- Nilai detail per arrow per peserta
+-- Nilai detail per arrow per peserta (tanpa Set, hanya Rambahan)
 CREATE TABLE scoring_scores (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   participant_id UUID NOT NULL REFERENCES scoring_participants(id) ON DELETE CASCADE,
-  set_number INTEGER NOT NULL,           -- Set ke- (1, 2, 3...)
   round_number INTEGER NOT NULL,         -- Rambahan ke- (1, 2, 3...)
   arrow_number INTEGER NOT NULL,         -- Arrow ke- (1, 2, 3...)
   score INTEGER NOT NULL DEFAULT 0,      -- Nilai arrow (0-10, atau 0 untuk miss)
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(participant_id, set_number, round_number, arrow_number)
+  UNIQUE(participant_id, round_number, arrow_number)
 );
 
 -- Index
 CREATE INDEX idx_scoring_scores_participant_id ON scoring_scores(participant_id);
-CREATE INDEX idx_scoring_scores_participant_set_round ON scoring_scores(participant_id, set_number, round_number);
+CREATE INDEX idx_scoring_scores_participant_round ON scoring_scores(participant_id, round_number);
 
 -- ============================================
 -- TRIGGERS & FUNCTIONS
@@ -108,6 +106,19 @@ CREATE TRIGGER update_scoring_sessions_updated_at
 CREATE TRIGGER update_scoring_scores_updated_at
   BEFORE UPDATE ON scoring_scores
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Function: Check if current user is admin (SECURITY DEFINER to avoid RLS recursion)
+CREATE OR REPLACE FUNCTION is_admin_user()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'admin'
+    AND status = 'approved'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Function: Generate unique 6-char code
 CREATE OR REPLACE FUNCTION generate_scoring_code()
@@ -148,6 +159,24 @@ ALTER TABLE scoring_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE scoring_scores ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
+-- GRANTS: Izinkan role authenticated & anon
+-- PENTING: Tanpa GRANT ini, RLS policy tidak akan pernah berjalan
+-- walaupun policy sudah benar. Hasilnya "permission denied for table".
+-- ============================================
+
+-- Role 'authenticated' (user yang sudah login) dapat melakukan DML
+-- RLS policy akan memfilter apa yang boleh dilakukan
+GRANT SELECT, INSERT, UPDATE, DELETE ON scoring_sessions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON scoring_participants TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON scoring_scores TO authenticated;
+
+-- Role 'anon' (belum login) hanya boleh SELECT (untuk join via kode)
+-- RLS policy akan memfilter lebih lanjut (hanya session active)
+GRANT SELECT ON scoring_sessions TO anon;
+GRANT SELECT ON scoring_participants TO anon;
+GRANT SELECT ON scoring_scores TO anon;
+
+-- ============================================
 -- POLICIES: scoring_sessions
 -- ============================================
 
@@ -167,9 +196,9 @@ CREATE POLICY scoring_sessions_admin_update ON scoring_sessions
 CREATE POLICY scoring_sessions_admin_delete ON scoring_sessions
   FOR DELETE USING (is_admin_user() OR created_by = auth.uid());
 
--- Member can read active sessions (for joining)
+-- Member can read active AND completed sessions (for joining and viewing leaderboard)
 CREATE POLICY scoring_sessions_member_read_active ON scoring_sessions
-  FOR SELECT USING (status = 'active');
+  FOR SELECT USING (status = 'active' OR status = 'completed');
 
 -- ============================================
 -- POLICIES: scoring_participants
@@ -230,8 +259,7 @@ SELECT
   ss.name,
   ss.code,
   ss.arrows_per_round,
-  ss.rounds_per_set,
-  ss.sets,
+  ss.rounds_per_session,
   ss.status,
   ss.created_by,
   ss.created_at,
@@ -244,7 +272,7 @@ FROM scoring_sessions ss
 JOIN profiles p ON ss.created_by = p.id
 LEFT JOIN scoring_participants sp ON ss.id = sp.session_id
 LEFT JOIN scoring_scores sc ON sp.id = sc.participant_id
-GROUP BY ss.id, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_set, ss.sets, ss.status, ss.created_by, ss.created_at, ss.updated_at, p.name, p.email;
+GROUP BY ss.id, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_session, ss.status, ss.created_by, ss.created_at, ss.updated_at, p.name, p.email;
 
 -- ============================================
 -- VIEW: Participant Scores Summary
@@ -260,25 +288,13 @@ SELECT
   ss.name AS session_name,
   ss.code AS session_code,
   ss.arrows_per_round,
-  ss.rounds_per_set,
-  ss.sets,
-  -- Total score per set
-  COALESCE(SUM(CASE WHEN sc.set_number = 1 THEN sc.score ELSE 0 END), 0) AS set_1_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 2 THEN sc.score ELSE 0 END), 0) AS set_2_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 3 THEN sc.score ELSE 0 END), 0) AS set_3_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 4 THEN sc.score ELSE 0 END), 0) AS set_4_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 5 THEN sc.score ELSE 0 END), 0) AS set_5_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 6 THEN sc.score ELSE 0 END), 0) AS set_6_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 7 THEN sc.score ELSE 0 END), 0) AS set_7_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 8 THEN sc.score ELSE 0 END), 0) AS set_8_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 9 THEN sc.score ELSE 0 END), 0) AS set_9_total,
-  COALESCE(SUM(CASE WHEN sc.set_number = 10 THEN sc.score ELSE 0 END), 0) AS set_10_total,
+  ss.rounds_per_session,
   -- Grand total
   COALESCE(SUM(sc.score), 0) AS grand_total,
   -- Progress: count of arrows entered vs total expected
   COUNT(sc.id) AS arrows_entered,
-  (ss.arrows_per_round * ss.rounds_per_set * ss.sets) AS total_arrows_expected
+  (ss.arrows_per_round * ss.rounds_per_session) AS total_arrows_expected
 FROM scoring_participants sp
 JOIN scoring_sessions ss ON sp.session_id = ss.id
 LEFT JOIN scoring_scores sc ON sp.id = sc.participant_id
-GROUP BY sp.id, sp.session_id, sp.user_id, sp.name, sp.joined_at, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_set, ss.sets;
+GROUP BY sp.id, sp.session_id, sp.user_id, sp.name, sp.joined_at, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_session;

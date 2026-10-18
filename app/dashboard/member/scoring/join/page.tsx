@@ -9,8 +9,7 @@ type SessionInfo = {
   name: string
   code: string
   arrows_per_round: number
-  rounds_per_set: number
-  sets: number
+  rounds_per_session: number
   status: string
   total_arrows: number
 }
@@ -190,7 +189,7 @@ export default function JoinScoringPage() {
                   </div>
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Konfigurasi</span>
-                    <span style={S.sessionValue}>{sessionInfo.arrows_per_round} Arrow × {sessionInfo.rounds_per_set} Rambahan × {sessionInfo.sets} Set</span>
+                    <span style={S.sessionValue}>{sessionInfo.arrows_per_round} Arrow × {sessionInfo.rounds_per_session} Rambahan</span>
                   </div>
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Total Arrow</span>
