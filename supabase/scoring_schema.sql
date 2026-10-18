@@ -196,9 +196,9 @@ CREATE POLICY scoring_sessions_admin_update ON scoring_sessions
 CREATE POLICY scoring_sessions_admin_delete ON scoring_sessions
   FOR DELETE USING (is_admin_user() OR created_by = auth.uid());
 
--- Member can read active sessions (for joining)
+-- Member can read active AND completed sessions (for joining and viewing leaderboard)
 CREATE POLICY scoring_sessions_member_read_active ON scoring_sessions
-  FOR SELECT USING (status = 'active');
+  FOR SELECT USING (status = 'active' OR status = 'completed');
 
 -- ============================================
 -- POLICIES: scoring_participants
