@@ -10,6 +10,7 @@ type LeaderboardEntry = {
   session_id: string
   session_name: string
   session_code: string
+  session_distance: number
   total_score: number
   arrows_entered: number
   total_arrows: number
@@ -24,12 +25,14 @@ type LeaderboardProps = {
   limit?: number
   title?: string
   showSessionName?: boolean
+  showDistanceFilter?: boolean
 }
 
-export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboard Scoring', showSessionName = true }: LeaderboardProps) {
+export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboard Scoring', showSessionName = true, showDistanceFilter = false }: LeaderboardProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedDistance, setSelectedDistance] = useState<number | 'all'>('all')
 
   const fetchLeaderboard = useCallback(async () => {
       setLoading(true)
@@ -40,6 +43,7 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
 
         const params = new URLSearchParams()
         if (sessionId) params.set('session_id', sessionId)
+        if (selectedDistance !== 'all') params.set('distance', selectedDistance.toString())
         params.set('limit', limit.toString())
 
         const res = await fetch(`/api/scoring/leaderboard?${params}`, {
@@ -64,7 +68,7 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
       } finally {
         setLoading(false)
       }
-    }, [sessionId, limit])
+    }, [sessionId, limit, selectedDistance])
 
   useEffect(() => { fetchLeaderboard() }, [fetchLeaderboard])
 
@@ -73,13 +77,6 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
     if (rank === 2) return { emoji: '🥈', color: '#94a3b8', bg: '#f1f5f9' }
     if (rank === 3) return { emoji: '🥉', color: '#b45309', bg: '#fef9c3' }
     return { emoji: `#${rank}`, color: '#64748b', bg: '#f1f5f9' }
-  }
-
-  const getProgressColor = (percent: number) => {
-    if (percent >= 100) return '#22c55e'
-    if (percent >= 75) return '#0ea5e9'
-    if (percent >= 50) return '#f59e0b'
-    return '#f87171'
   }
 
   if (loading) {
@@ -125,8 +122,6 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
           --lb-meta-gap: 10px;
           --lb-score-font: 18px;
           --lb-score-min-width: 80px;
-          --lb-progress-width: 100%;
-          --lb-progress-height: 5px;
           --lb-card-shadow: 0 12px 32px rgba(30,58,138,0.06);
         }
 
@@ -145,8 +140,6 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
             --lb-meta-gap: 12px;
             --lb-score-font: 19px;
             --lb-score-min-width: 90px;
-            --lb-progress-width: 180px;
-            --lb-progress-height: 6px;
             --lb-card-shadow: 0 16px 40px rgba(30,58,138,0.07);
           }
         }
@@ -166,8 +159,6 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
             --lb-meta-gap: 16px;
             --lb-score-font: 20px;
             --lb-score-min-width: 100px;
-            --lb-progress-width: 200px;
-            --lb-progress-height: 6px;
             --lb-card-shadow: 0 18px 50px rgba(30,58,138,0.08);
           }
         }
@@ -187,6 +178,12 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
           border-bottom: 2px solid rgba(15,23,82,0.35);
         }
 
+        .leaderboard-header-content {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
         .leaderboard-title {
           font-family: 'Playfair Display', serif;
           font-size: var(--lb-title-size);
@@ -195,6 +192,31 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
           display: flex;
           align-items: center;
           gap: 10px;
+        }
+
+        .distance-filter {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .distance-filter-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: #64748b;
+        }
+
+        .distance-filter-select {
+          background: #ffffff;
+          border: 2px solid rgba(15,23,82,0.35);
+          border-radius: 8px;
+          padding: 6px 12px;
+          color: #0f172a;
+          font-size: 13px;
+          font-family: 'DM Sans', sans-serif;
+          outline: none;
+          cursor: pointer;
         }
 
         .leaderboard-loading,
@@ -267,32 +289,45 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
           flex-shrink: 0;
         }
 
-        .leaderboard-progress {
-          height: var(--lb-progress-height);
-          background: #e2e8f0;
-          border-radius: 3px;
-          margin-top: 8px;
-          width: var(--lb-progress-width);
-          max-width: 100%;
-        }
-
-        .leaderboard-progress-fill {
-          height: 100%;
-          border-radius: 3px;
-          transition: width 0.3s ease;
-        }
-
-        /* Mobile-specific: stack meta items vertically on very small screens */
         @media (max-width: 480px) {
           .leaderboard-meta { gap: 6px; }
           .leaderboard-meta span { font-size: 10px; }
+          .distance-filter { width: 100%; }
+          .distance-filter-select { width: 100%; }
         }
       `}</style>
 
       <div className="leaderboard-container">
         <div className="leaderboard-header">
-          <div className="leaderboard-title">
-            🏆 {title}
+          <div className="leaderboard-header-content">
+            <div className="leaderboard-title">
+              🏆 {title}
+            </div>
+            {showDistanceFilter && (
+              <div className="distance-filter">
+                <span className="distance-filter-label">Filter Jarak:</span>
+                <select
+                  className="distance-filter-select"
+                  value={selectedDistance}
+                  onChange={(e) => setSelectedDistance(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                >
+                  <option value="all">Semua Jarak</option>
+                  <option value="10">10m</option>
+                  <option value="15">15m</option>
+                  <option value="20">20m</option>
+                  <option value="25">25m</option>
+                  <option value="30">30m</option>
+                  <option value="35">35m</option>
+                  <option value="40">40m</option>
+                  <option value="45">45m</option>
+                  <option value="50">50m</option>
+                  <option value="55">55m</option>
+                  <option value="60">60m</option>
+                  <option value="65">65m</option>
+                  <option value="70">70m</option>
+                </select>
+              </div>
+            )}
           </div>
         </div>
         <div className="leaderboard-list">
@@ -311,18 +346,9 @@ export default function Leaderboard({ sessionId, limit = 10, title = 'Leaderboar
                   <div className="leaderboard-name">{entry.name}</div>
                   <div className="leaderboard-meta">
                     {showSessionName && <span>📋 {entry.session_name}</span>}
-                    <span>🏹 {entry.arrows_entered}/{entry.total_arrows} Arrow</span>
-                    <span>📊 {entry.progress_percent}%</span>
+                    <span>🏹 {entry.arrows_entered} Arrow</span>
+                    <span>🎯 {entry.session_distance}m</span>
                     <span>⭐ Avg: {entry.avg_score}</span>
-                  </div>
-                  <div className="leaderboard-progress">
-                    <div
-                      className="leaderboard-progress-fill"
-                      style={{
-                        width: `${entry.progress_percent}%`,
-                        background: getProgressColor(entry.progress_percent)
-                      }}
-                    />
                   </div>
                 </div>
                 <div className="leaderboard-score">

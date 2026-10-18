@@ -164,6 +164,60 @@ export default function MemberDashboard() {
         @media (min-width: 768px) {
           .grid2 { grid-template-columns: 1fr 1fr; }
         }
+
+        /* Responsive for mobile */
+        @media (max-width: 640px) {
+          .topbar { padding: 10px 12px; min-height: 56px; }
+          .logo { width: 32px; height: 32px; font-size: 14px; }
+          .ttl { font-size: 16px; }
+          .badge { font-size: 10px; padding: 3px 8px; }
+          .btn-out { padding: 8px 14px; font-size: 12px; }
+          .content { padding: 24px 16px; }
+          .ptitle { font-size: 24px; }
+          .psub { font-size: 13px; margin-bottom: 24px; }
+          .grid2 { grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
+          .card { padding: 20px; border-radius: 20px; }
+          .clbl { font-size: 10px; margin-bottom: 8px; }
+          .cval { font-size: 28px; }
+          .cunit { font-size: 12px; margin-left: 4px; }
+          .prow { padding: 12px 0; }
+          .pk { font-size: 11px; min-width: 100px; }
+          .pv { font-size: 13px; }
+          .absen-done { padding: 16px 18px; }
+          .adone-txt { font-size: 13px; }
+          .btn-absen { padding: 12px 24px; font-size: 13px; width: 100%; }
+          .hitem { padding: 16px 20px; }
+          .hdate { font-size: 12px; }
+          .hbadge { padding: 4px 12px; font-size: 10px; }
+          .hempty { padding: 24px 20px; font-size: 12px; }
+          .hhead { padding: 16px 20px; font-size: 13px; }
+        }
+
+        @media (max-width: 480px) {
+          .topbar { padding: 8px 10px; }
+          .logo { width: 28px; height: 28px; font-size: 12px; }
+          .ttl { font-size: 15px; }
+          .badge { font-size: 9px; padding: 2px 6px; }
+          .btn-out { padding: 6px 10px; font-size: 11px; }
+          .content { padding: 20px 12px; }
+          .ptitle { font-size: 22px; }
+          .psub { font-size: 12px; margin-bottom: 20px; }
+          .card { padding: 16px; border-radius: 16px; }
+          .clbl { font-size: 9px; }
+          .cval { font-size: 24px; }
+          .cunit { font-size: 11px; }
+          .prow { padding: 10px 0; }
+          .pk { font-size: 10px; min-width: 80px; }
+          .pv { font-size: 12px; }
+          .absen-done { padding: 14px 16px; }
+          .adone-txt { font-size: 12px; }
+          .btn-absen { padding: 12px 16px; font-size: 12px; }
+          .hitem { padding: 14px 16px; }
+          .hdate { font-size: 11px; }
+          .hbadge { padding: 3px 10px; font-size: 9px; }
+          .hempty { padding: 20px 16px; font-size: 11px; }
+          .hhead { padding: 14px 16px; font-size: 12px; }
+        }
       `}</style>
 
       <div className="layout">
@@ -228,7 +282,7 @@ export default function MemberDashboard() {
           </div>
 
           <div className="card" style={{marginBottom:16}}>
-            <Leaderboard limit={5} title="Leaderboard Teratas" />
+            <Leaderboard limit={5} title="Leaderboard Teratas" showDistanceFilter={true} />
           </div>
 
           <div className="card">

@@ -217,8 +217,8 @@ export default function AbsenPage() {
     }
 
     return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif", background: '#f8fbff' }}>
-      
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif", background: '#f8fbff', padding: '16px' }}>
+
       {/* TAMPILAN SEMENTARA SELAMA PENGECEKAN */}
       {isChecking && (
         <h2 style={{ fontFamily: "'Playfair Display',serif", color: '#0f172a' }}>
@@ -227,9 +227,9 @@ export default function AbsenPage() {
       )}
 
       {/* TAMPILAN ABSEN ASLI (DISEMBUNYIKAN JIKA BELUM SELESAI CEK) */}
-      <div style={{ 
-          display: isChecking ? 'none' : 'block', // Menyembunyikan div ini via CSS
-          background: '#ffffff', border: '2px solid rgba(15,23,82,0.35)', borderRadius: '24px', padding: '32px', boxShadow: '0 24px 60px rgba(30,58,138,0.08)', maxWidth: '500px', width: '100%', textAlign: 'center' 
+      <div style={{
+          display: isChecking ? 'none' : 'block',
+          background: '#ffffff', border: '2px solid rgba(15,23,82,0.35)', borderRadius: '24px', padding: '32px', boxShadow: '0 24px 60px rgba(30,58,138,0.08)', maxWidth: '500px', width: '100%', textAlign: 'center'
       }}>
         <h1 style={{ fontFamily: "'Playfair Display',serif", fontSize: '24px', color: '#0f172a', fontWeight: '700', marginBottom: '16px' }}>Absen Kehadiran</h1>
         <p style={{ color: '#475569', fontSize: '14px', marginBottom: '24px' }}>Ambil foto sebagai bukti kehadiran</p>
@@ -252,6 +252,15 @@ export default function AbsenPage() {
           {loading ? 'Memproses...' : 'Ambil Foto & Absen'}
         </button>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 480px) {
+          .video-container { border-radius: 10px; }
+          h1 { font-size: 20px !important; }
+          p { font-size: 13px !important; }
+          button { padding: 12px 20px !important; font-size: 13px !important; }
+        }
+      `}</style>
     </div>
   )
 }

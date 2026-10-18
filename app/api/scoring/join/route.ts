@@ -82,18 +82,18 @@ export async function GET(request: NextRequest) {
   
   const { data: session, error } = await auth.userSupabase
     .from('scoring_sessions')
-    .select('id, name, code, arrows_per_round, rounds_per_session, status')
+    .select('id, name, code, arrows_per_round, rounds_per_session, distance, status')
     .eq('code', code.toUpperCase())
     .single()
-  
+
   if (error || !session) {
     return NextResponse.json({ error: 'Kode scoring tidak ditemukan' }, { status: 404 })
   }
-  
+
   if (session.status !== 'active') {
     return NextResponse.json({ error: 'Session scoring tidak aktif atau sudah selesai' }, { status: 400 })
   }
-  
+
   // Check if user already joined
   const { data: existing } = await auth.userSupabase
     .from('scoring_participants')
@@ -101,7 +101,7 @@ export async function GET(request: NextRequest) {
     .eq('session_id', session.id)
     .eq('user_id', auth.user.id)
     .single()
-  
+
   return NextResponse.json({
     session: {
       ...session,

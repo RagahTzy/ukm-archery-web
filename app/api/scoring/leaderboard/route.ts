@@ -71,11 +71,12 @@ async function verifyUser(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const auth = await verifyUser(request)
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
-  
+
   const { searchParams } = new URL(request.url)
   const sessionId = searchParams.get('session_id')
+  const distance = searchParams.get('distance')
   const limit = parseInt(searchParams.get('limit') || '10')
-  
+
   // Build query for participant scores with totals
   let query = auth.userSupabase
     .from('scoring_participants')
@@ -91,6 +92,7 @@ export async function GET(request: NextRequest) {
         code,
         arrows_per_round,
         rounds_per_session,
+        distance,
         status
       ),
       scoring_scores (
@@ -98,31 +100,36 @@ export async function GET(request: NextRequest) {
       )
     `)
     .eq('scoring_sessions.status', 'completed')
-  
+
   if (sessionId) {
     query = query.eq('session_id', sessionId)
   }
-  
+
+  if (distance) {
+    query = query.eq('scoring_sessions.distance', parseInt(distance))
+  }
+
   const { data: participants, error } = await query
-  
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  
+
   // Calculate totals and rankings
-  const leaderboard = (participants || []).map((p: { 
-    id: string; 
-    name: string; 
-    user_id: string; 
-    joined_at: string; 
-    session_id: string; 
-    scoring_sessions: { 
-      id: string; 
-      name: string; 
-      code: string; 
-      arrows_per_round: number; 
-      rounds_per_session: number; 
-      status: string 
-    }[]; 
-    scoring_scores: Array<{ score: number }> 
+  const leaderboard = (participants || []).map((p: {
+    id: string;
+    name: string;
+    user_id: string;
+    joined_at: string;
+    session_id: string;
+    scoring_sessions: {
+      id: string;
+      name: string;
+      code: string;
+      arrows_per_round: number;
+      rounds_per_session: number;
+      distance: number;
+      status: string
+    }[];
+    scoring_scores: Array<{ score: number }>
   }) => {
     const scores = p.scoring_scores || []
     const session = p.scoring_sessions?.[0]
@@ -130,7 +137,7 @@ export async function GET(request: NextRequest) {
     const totalArrows = scores.length
     const expectedArrows = session?.arrows_per_round * session?.rounds_per_session || 0
     const avgScore = totalArrows > 0 ? totalScore / totalArrows : 0
-    
+
     return {
       participant_id: p.id,
       name: p.name,
@@ -138,6 +145,7 @@ export async function GET(request: NextRequest) {
       session_id: p.session_id,
       session_name: session?.name || '',
       session_code: session?.code || '',
+      session_distance: session?.distance || 0,
       total_score: totalScore,
       arrows_entered: totalArrows,
       total_arrows: expectedArrows,
@@ -146,19 +154,19 @@ export async function GET(request: NextRequest) {
       joined_at: p.joined_at
     }
   })
-  
+
   // Sort by total score DESC, then by avg score DESC, then by arrows entered DESC
   leaderboard.sort((a, b) => {
     if (b.total_score !== a.total_score) return b.total_score - a.total_score
     if (b.avg_score !== a.avg_score) return b.avg_score - a.avg_score
     return b.arrows_entered - a.arrows_entered
   })
-  
+
   // Add rank
   const rankedLeaderboard = leaderboard.slice(0, limit).map((item, index) => ({
     ...item,
     rank: index + 1
   }))
-  
+
   return NextResponse.json({ leaderboard: rankedLeaderboard })
 }

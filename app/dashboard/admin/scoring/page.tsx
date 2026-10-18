@@ -15,6 +15,7 @@ type ScoringSession = {
   code: string
   arrows_per_round: number
   rounds_per_session: number
+  distance: number
   status: 'draft' | 'active' | 'completed'
   created_at: string
   updated_at: string
@@ -49,7 +50,12 @@ export default function ScoringListPage() {
 
   const [formRounds, setFormRounds] = useState(5)
 
+  const [formDistance, setFormDistance] = useState(30)
+
   const [formError, setFormError] = useState('')
+
+  // Join session state
+  const [joining, setJoining] = useState(false)
 
 
 
@@ -118,7 +124,7 @@ export default function ScoringListPage() {
 
         method: 'POST',
 
-        headers: { 
+        headers: {
 
           'Content-Type': 'application/json',
 
@@ -132,7 +138,9 @@ export default function ScoringListPage() {
 
           arrows_per_round: formArrows,
 
-          rounds_per_session: formRounds
+          rounds_per_session: formRounds,
+
+          distance: formDistance
 
         })
 
@@ -149,6 +157,8 @@ export default function ScoringListPage() {
       setFormArrows(6)
 
       setFormRounds(5)
+
+      setFormDistance(30)
 
       fetchSessions()
 
@@ -224,8 +234,28 @@ export default function ScoringListPage() {
 
   }
 
-
-
+  // Join session as participant (for admin)
+  const handleJoinSession = async (sessionId: string, sessionCode: string) => {
+    setJoining(true)
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/scoring/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authSession?.access_token}`
+        },
+        body: JSON.stringify({ code: sessionCode })
+      })
+      const json = await res.json()
+      if (json.error) { alert(json.error); return }
+      alert(`Berhasil bergabung ke scoring "${sessionCode}" sebagai peserta!`)
+    } catch (err) {
+      alert('Gagal bergabung ke session')
+    } finally {
+      setJoining(false)
+    }
+  }
 
 
   const getStatusBadge = (status: string) => {
@@ -342,7 +372,7 @@ export default function ScoringListPage() {
 
         .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
 
-        .ab{padding:6px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.15s;}
+        .ab{padding:6px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:all 0.15s;white-space:nowrap;}
 
         .aap{background:#d1fae5;color:#166534;} .aap:hover{background:#86efac;}
 
@@ -353,6 +383,34 @@ export default function ScoringListPage() {
         .code-badge{font-family:monospace;background:#f1f5f9;border:1px solid rgba(15,23,82,0.2);padding:2px 8px;border-radius:6px;font-size:12px;}
 
         .config-badge{font-size:11px;color:#475569;}
+
+        /* Responsive table */
+        @media (max-width: 768px) {
+          .tscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          table { min-width: 600px; }
+          th, td { padding: 8px 6px; font-size: 11px; }
+          .mname { font-size: 12px; }
+          .memail { font-size: 10px; }
+          .code-badge { padding: 2px 6px; font-size: 11px; }
+          .config-badge { font-size: 10px; }
+          .ab { padding: 5px 8px; font-size: 10px; }
+        }
+
+        @media (max-width: 480px) {
+          .tab-btn { padding: 6px 12px; font-size: 11px; }
+          .fbtn { padding: 5px 10px; font-size: 10px; }
+          th { padding: 8px 4px; font-size: 9px; }
+          td { padding: 8px 4px; font-size: 10px; }
+          .mname { font-size: 11px; }
+          .memail { font-size: 9px; }
+          .nc { font-size: 10px; }
+          .code-badge { padding: 1px 4px; font-size: 10px; }
+          .config-badge { font-size: 9px; }
+          .ab { padding: 4px 6px; font-size: 9px; }
+          .stat-item { padding: 6px 8px; }
+          .stat-label { font-size: 9px; }
+          .stat-value { font-size: 14px; }
+        }
 
         .modal-input{width:100%;background:#f8fafc;border:2px solid rgba(15,23,82,0.35);border-radius:12px;padding:12px 14px;color:#0f172a;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;margin-top:6px;margin-bottom:16px;}
 
@@ -458,7 +516,8 @@ export default function ScoringListPage() {
 
               cursor: 'pointer', fontWeight: 700, fontSize: 14, fontFamily: "'DM Sans',sans-serif",
 
-              display: 'flex', alignItems: 'center', gap: 8
+              display: 'flex', alignItems: 'center', gap: 8,
+              marginBottom: 24
 
             }}
 
@@ -502,6 +561,8 @@ export default function ScoringListPage() {
 
                       <th style={{minWidth:100}}>Kode</th>
 
+                      <th style={{minWidth:80}}>Jarak</th>
+
                       <th style={{minWidth:160}}>Konfigurasi</th>
 
                       <th style={{minWidth:100}}>Peserta</th>
@@ -532,6 +593,8 @@ export default function ScoringListPage() {
 
                         <td><span className="code-badge">{s.code}</span></td>
 
+                        <td><span className="code-badge" style={{background:'#fff3e0',color:'#e65100'}}>{s.distance}m</span></td>
+
                         <td>
 
                           <span className="config-badge">
@@ -557,6 +620,16 @@ export default function ScoringListPage() {
                           <div className="acts">
 
                             <button className="ab aed" onClick={()=>router.push(`/dashboard/admin/scoring/${s.id}`)}>Detail</button>
+
+                            {s.status === 'active' && (
+
+                              <button className="ab" style={{background:'#e0f2fe',color:'#0369a1'}} onClick={()=>handleJoinSession(s.id, s.code)} disabled={joining}>
+
+                                {joining ? 'Menggabung...' : '🏹 Ikuti Scoring'}
+
+                              </button>
+
+                            )}
 
                             {s.status === 'draft' && (
 
@@ -636,9 +709,29 @@ export default function ScoringListPage() {
 
                 </div>
 
+                <div className="modal-row">
+
+                  <div>
+
+                    <label className="modal-label">Jarak (meter)</label>
+
+                    <input className="modal-input" type="number" min="10" max="70" step="5" value={formDistance} onChange={e=>setFormDistance(Number(e.target.value))} />
+
+                  </div>
+
+                  <div>
+
+                    <label className="modal-label">Total Arrow/Peserta</label>
+
+                    <input className="modal-input" type="number" value={formArrows * formRounds} readOnly style={{background:'#f1f5f9',color:'#64748b'}} />
+
+                  </div>
+
+                </div>
+
                 <div style={{fontSize:12,color:'#64748b',marginBottom:16}}>
 
-                  Total Arrow per Peserta: <strong>{formArrows * formRounds}</strong>
+                  Total Arrow per Peserta: <strong>{formArrows * formRounds}</strong> &nbsp;|&nbsp; Jarak: <strong>{formDistance}m</strong>
 
                 </div>
 

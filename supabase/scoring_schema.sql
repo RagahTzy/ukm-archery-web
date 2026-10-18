@@ -43,6 +43,7 @@ CREATE TABLE scoring_sessions (
   code TEXT NOT NULL UNIQUE,             -- Kode unik 6 karakter (contoh: "A7K92P")
   arrows_per_round INTEGER NOT NULL DEFAULT 6,   -- Jumlah Arrow per Rambahan
   rounds_per_session INTEGER NOT NULL DEFAULT 5, -- Jumlah Rambahan per Sesi (tanpa Set)
+  distance INTEGER NOT NULL DEFAULT 30,          -- Jarak target (meter), kelipatan 5: 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70
   status TEXT NOT NULL DEFAULT 'draft',          -- Status: draft, active, completed
   created_by UUID NOT NULL REFERENCES profiles(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -53,6 +54,7 @@ CREATE TABLE scoring_sessions (
 CREATE INDEX idx_scoring_sessions_code ON scoring_sessions(code);
 CREATE INDEX idx_scoring_sessions_created_by ON scoring_sessions(created_by);
 CREATE INDEX idx_scoring_sessions_status ON scoring_sessions(status);
+CREATE INDEX idx_scoring_sessions_distance ON scoring_sessions(distance);
 
 -- 2. SCORING PARTICIPANTS
 -- Peserta yang bergabung ke session via kode
@@ -274,13 +276,15 @@ CREATE POLICY scoring_scores_member_read_session ON scoring_scores
 -- VIEW: Scoring Session Detail (for admin)
 -- ============================================
 
-CREATE OR REPLACE VIEW scoring_session_detail AS
-SELECT 
+DROP VIEW IF EXISTS scoring_session_detail;
+CREATE VIEW scoring_session_detail AS
+SELECT
   ss.id,
   ss.name,
   ss.code,
   ss.arrows_per_round,
   ss.rounds_per_session,
+  ss.distance,
   ss.status,
   ss.created_by,
   ss.created_at,
@@ -293,14 +297,15 @@ FROM scoring_sessions ss
 JOIN profiles p ON ss.created_by = p.id
 LEFT JOIN scoring_participants sp ON ss.id = sp.session_id
 LEFT JOIN scoring_scores sc ON sp.id = sc.participant_id
-GROUP BY ss.id, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_session, ss.status, ss.created_by, ss.created_at, ss.updated_at, p.name, p.email;
+GROUP BY ss.id, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_session, ss.distance, ss.status, ss.created_by, ss.created_at, ss.updated_at, p.name, p.email;
 
 -- ============================================
 -- VIEW: Participant Scores Summary
 -- ============================================
 
-CREATE OR REPLACE VIEW participant_scores_summary AS
-SELECT 
+DROP VIEW IF EXISTS participant_scores_summary;
+CREATE VIEW participant_scores_summary AS
+SELECT
   sp.id AS participant_id,
   sp.session_id,
   sp.user_id,
@@ -310,6 +315,7 @@ SELECT
   ss.code AS session_code,
   ss.arrows_per_round,
   ss.rounds_per_session,
+  ss.distance,
   -- Grand total
   COALESCE(SUM(sc.score), 0) AS grand_total,
   -- Progress: count of arrows entered vs total expected
@@ -318,4 +324,4 @@ SELECT
 FROM scoring_participants sp
 JOIN scoring_sessions ss ON sp.session_id = ss.id
 LEFT JOIN scoring_scores sc ON sp.id = sc.participant_id
-GROUP BY sp.id, sp.session_id, sp.user_id, sp.name, sp.joined_at, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_session;
+GROUP BY sp.id, sp.session_id, sp.user_id, sp.name, sp.joined_at, ss.name, ss.code, ss.arrows_per_round, ss.rounds_per_session, ss.distance;

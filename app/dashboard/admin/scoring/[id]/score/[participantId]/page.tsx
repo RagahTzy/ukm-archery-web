@@ -7,6 +7,7 @@ import { useRouter, useParams } from 'next/navigation'
 type SessionConfig = {
   arrows_per_round: number
   rounds_per_session: number
+  distance: number
 }
 
 type Participant = {
@@ -227,6 +228,36 @@ export default function ScoringInputPage() {
         @media (min-width: 640px) {
           .arrow-grid { grid-template-columns: repeat(${session?.arrows_per_round || 6}, 1fr); }
         }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .score-input { width: 50px; height: 50px; font-size: 16px; border-radius: 10px; }
+          .arrow-label { font-size: 9px; }
+          .nav-btn { padding: 6px 12px; font-size: 11px; }
+          .total-badge { padding: 4px 8px; font-size: 11px; }
+          .info-row { gap: 12px; padding: 10px 12px; }
+          .info-item { font-size: 11px; }
+          .info-item strong { font-size: 13px; }
+          .btn-save { padding: 10px 20px; font-size: 13px; }
+          .btn-back { padding: 8px 16px; font-size: 12px; }
+          .round-header { font-size: 14px; }
+          .grand-badge { padding: 8px 16px; font-size: 14px; }
+        }
+
+        @media (max-width: 480px) {
+          .score-input { width: 44px; height: 44px; font-size: 15px; border-radius: 8px; }
+          .arrow-label { font-size: 8px; }
+          .nav-btn { padding: 5px 10px; font-size: 10px; }
+          .total-badge { padding: 3px 6px; font-size: 10px; }
+          .info-row { gap: 8px; padding: 8px 10px; }
+          .info-item { font-size: 10px; }
+          .info-item strong { font-size: 12px; }
+          .btn-save { padding: 12px 16px; font-size: 13px; width: 100%; }
+          .btn-back { padding: 10px 14px; font-size: 12px; width: 100%; }
+          .round-header { font-size: 13px; }
+          .grand-badge { padding: 10px 14px; font-size: 13px; }
+          .saved-toast { left: 16px; right: 16px; bottom: 16px; text-align: center; }
+        }
       `}</style>
 
       <div style={S.layout}>
@@ -251,6 +282,7 @@ export default function ScoringInputPage() {
           <div className="info-row">
             <div className="info-item">Rambahan <strong>{currentRound} / {session.rounds_per_session}</strong></div>
             <div className="info-item">Arrow <strong>{session.arrows_per_round} per Rambahan</strong></div>
+            <div className="info-item">Jarak <strong>{session.distance}m</strong></div>
             <div className="info-item">Total Rambahan <strong>{roundTotals[currentRound] || 0}</strong></div>
             <div className="info-item">Grand Total <strong>{grandTotal}</strong></div>
           </div>

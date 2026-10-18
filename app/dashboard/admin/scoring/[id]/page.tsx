@@ -22,6 +22,7 @@ type ScoringSession = {
   code: string
   arrows_per_round: number
   rounds_per_session: number
+  distance: number
   status: 'draft' | 'active' | 'completed'
   created_at: string
   updated_at: string
@@ -32,11 +33,36 @@ export default function ScoringDetailPage() {
   const router = useRouter()
   const params = useParams()
   const sessionId = params.id as string
-  
+
   const [session, setSession] = useState<ScoringSession | null>(null)
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedParticipant, setSelectedParticipant] = useState<string | null>(null)
+  const [joining, setJoining] = useState(false)
+
+  // Join session as participant (for admin)
+  const handleJoinSession = async (sessionId: string, sessionCode: string) => {
+    setJoining(true)
+    try {
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/scoring/join', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authSession?.access_token}`
+        },
+        body: JSON.stringify({ code: sessionCode })
+      })
+      const json = await res.json()
+      if (json.error) { alert(json.error); return }
+      alert(`Berhasil bergabung ke scoring "${sessionCode}" sebagai peserta!`)
+      fetchDetail() // Refresh participants
+    } catch (err) {
+      alert('Gagal bergabung ke session')
+    } finally {
+      setJoining(false)
+    }
+  }
 
   const fetchDetail = useCallback(async () => {
     setLoading(true)
@@ -157,6 +183,30 @@ export default function ScoringDetailPage() {
         @media (min-width: 640px) {
           .participant-card { padding: 24px; }
         }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+          .code-display { font-size: 12px; padding: 6px 10px; letter-spacing: 1px; }
+          .stat-item { padding: 8px 10px; }
+          .stat-label { font-size: 10px; }
+          .stat-value { font-size: 16px; }
+          .btn-action { padding: 10px 16px; font-size: 13px; }
+          .participant-card { padding: 16px; }
+          .score-preview { font-size: 12px; padding: 6px 10px; }
+          .progress-bar { width: 100px; }
+          .copy-btn { padding: 5px 10px; font-size: 11px; }
+        }
+
+        @media (max-width: 480px) {
+          .code-display { font-size: 11px; padding: 5px 8px; letter-spacing: 0.5px; }
+          .stat-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+          .stat-label { font-size: 9px; }
+          .stat-value { font-size: 14px; }
+          .btn-action { padding: 12px 16px; font-size: 14px; }
+          .copy-btn { padding: 4px 8px; font-size: 10px; }
+          .score-preview { font-size: 11px; padding: 5px 8px; }
+          .progress-bar { width: 80px; }
+        }
       `}</style>
 
       <div style={S.layout}>
@@ -191,7 +241,7 @@ export default function ScoringDetailPage() {
             </div>
 
             {/* Config Stats */}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:12,marginBottom:16}}>
               <div className="stat-item">
                 <span className="stat-label">Arrow per Rambahan</span>
                 <span className="stat-value">{session.arrows_per_round}</span>
@@ -204,7 +254,23 @@ export default function ScoringDetailPage() {
                 <span className="stat-label">Total Arrow/Peserta</span>
                 <span className="stat-value">{session.arrows_per_round * session.rounds_per_session}</span>
               </div>
+              <div className="stat-item">
+                <span className="stat-label">Jarak Target</span>
+                <span className="stat-value" style={{color:'#e65100'}}>{session.distance}m</span>
+              </div>
             </div>
+
+            {/* Join as participant button for admin */}
+            {session.status === 'active' && (
+              <button
+                className="btn-action btn-primary"
+                style={{width: '100%', maxWidth: 300, margin: '0 auto'}}
+                onClick={() => handleJoinSession(sessionId, session.code)}
+                disabled={joining}
+              >
+                {joining ? 'Menggabung...' : '🏹 Ikuti Scoring Sebagai Peserta'}
+              </button>
+            )}
           </div>
 
           {/* Participants */}
