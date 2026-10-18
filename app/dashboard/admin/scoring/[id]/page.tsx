@@ -21,8 +21,7 @@ type ScoringSession = {
   name: string
   code: string
   arrows_per_round: number
-  rounds_per_set: number
-  sets: number
+  rounds_per_session: number
   status: 'draft' | 'active' | 'completed'
   created_at: string
   updated_at: string
@@ -56,8 +55,7 @@ export default function ScoringDetailPage() {
         name: json.name,
         code: json.code,
         arrows_per_round: json.arrows_per_round,
-        rounds_per_set: json.rounds_per_set,
-        sets: json.sets,
+        rounds_per_session: json.rounds_per_session,
         status: json.status,
         created_at: json.created_at,
         updated_at: json.updated_at,
@@ -199,16 +197,12 @@ export default function ScoringDetailPage() {
                 <span className="stat-value">{session.arrows_per_round}</span>
               </div>
               <div className="stat-item">
-                <span className="stat-label">Rambahan per Set</span>
-                <span className="stat-value">{session.rounds_per_set}</span>
-              </div>
-              <div className="stat-item">
-                <span className="stat-label">Jumlah Set</span>
-                <span className="stat-value">{session.sets}</span>
+                <span className="stat-label">Rambahan per Sesi</span>
+                <span className="stat-value">{session.rounds_per_session}</span>
               </div>
               <div className="stat-item">
                 <span className="stat-label">Total Arrow/Peserta</span>
-                <span className="stat-value">{session.arrows_per_round * session.rounds_per_set * session.sets}</span>
+                <span className="stat-value">{session.arrows_per_round * session.rounds_per_session}</span>
               </div>
             </div>
           </div>
@@ -272,13 +266,6 @@ export default function ScoringDetailPage() {
                       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:8,minWidth:180}}>
                         <div className="score-preview">
                           Total: <strong>{p.total_score}</strong>
-                        </div>
-                        <div style={{display:'flex',flexDirection:'column',gap:2,alignItems:'flex-end'}}>
-                          {Array.from({length: session.sets}, (_, si) => si+1).map(setNum => (
-                            <span key={setNum} style={{fontSize:11,color:'#475569'}}>
-                              Set {setNum}: <strong>{p.set_totals[setNum] || 0}</strong>
-                            </span>
-                          ))}
                         </div>
                         <div className="progress-bar" style={{width:120}}>
                           <div className="progress-fill" style={{
