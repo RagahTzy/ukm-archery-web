@@ -215,7 +215,7 @@ export default function JoinScoringPage() {
                   </div>
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Jarak Target</span>
-                    <span style={S.sessionValue} style={{color:'#e65100'}}>{sessionInfo.distance ?? 30}m</span>
+                    <span style={{...S.sessionValue, color:'#e65100'}}>{sessionInfo.distance ?? 30}m</span>
                   </div>
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Total Arrow</span>
