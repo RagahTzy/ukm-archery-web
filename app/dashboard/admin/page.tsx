@@ -280,6 +280,59 @@ export default function AdminDashboard() {
           .topbar { padding: 0 32px; }
           .content { padding: 40px 32px; }
         }
+
+        /* Responsive for mobile */
+        @media (max-width: 640px) {
+          .topbar { padding: 10px 12px; min-height: 56px; }
+          .tab-btn { padding: 7px 14px; font-size: 11px; }
+          .stats-grid { gap: 10px; margin-bottom: 16px; }
+          .sc { padding: 14px; border-radius: 16px; }
+          .sl { font-size: 9px; margin-bottom: 6px; }
+          .sv { font-size: 22px; }
+          .filters { gap: 6px; margin-bottom: 12px; }
+          .fbtn { padding: 5px 10px; font-size: 10px; }
+          .tscroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+          table { min-width: 600px; }
+          th { padding: 8px 6px; font-size: 9px; }
+          td { padding: 10px 6px; font-size: 11px; }
+          .mname { font-size: 12px; }
+          .memail { font-size: 10px; }
+          .nc { font-size: 10px; }
+          .rsel { padding: 5px 6px; font-size: 11px; }
+          .badge { padding: 3px 6px; font-size: 9px; }
+          .acts { gap: 4px; }
+          .ab { padding: 5px 8px; font-size: 10px; }
+          .ctrl { gap: 6px; margin-bottom: 12px; }
+          .cl { font-size: 11px; }
+          .cs { padding: 6px 8px; font-size: 11px; }
+          .ainfo { font-size: 10px; }
+          .dot-h, .dot-a { width: 22px; height: 22px; font-size: 9px; }
+          .tot-badge { padding: 3px 6px; font-size: 10px; }
+          .btn-photo { font-size: 8px; padding: 2px 4px; }
+        }
+
+        @media (max-width: 480px) {
+          .topbar { padding: 8px 10px; }
+          .tab-btn { padding: 6px 10px; font-size: 10px; }
+          .stats-grid { grid-template-columns: 1fr; gap: 8px; }
+          .sc { padding: 12px; }
+          .sl { font-size: 8px; }
+          .sv { font-size: 20px; }
+          .fbtn { padding: 4px 8px; font-size: 9px; }
+          th { padding: 6px 4px; font-size: 8px; }
+          td { padding: 8px 4px; font-size: 10px; }
+          .mname { font-size: 11px; }
+          .memail { font-size: 9px; }
+          .nc { font-size: 9px; }
+          .rsel { padding: 4px 5px; font-size: 10px; }
+          .badge { padding: 2px 5px; font-size: 8px; }
+          .ab { padding: 4px 6px; font-size: 9px; }
+          .cl { font-size: 10px; }
+          .cs { padding: 5px 6px; font-size: 10px; }
+          .ainfo { font-size: 9px; }
+          .dot-h, .dot-a { width: 20px; height: 20px; font-size: 8px; }
+          .tot-badge { padding: 2px 5px; font-size: 9px; }
+        }
       `}</style>
 
       <div style={S.layout}>
@@ -403,7 +456,7 @@ export default function AdminDashboard() {
           {activeTab==='absen' && (
             <>
               <div className="card" style={{marginBottom:16}}>
-                <Leaderboard limit={10} title="Leaderboard Scoring" />
+                <Leaderboard limit={10} title="Leaderboard Scoring" showDistanceFilter={true} />
               </div>
               <div className="ctrl">
                 <span className="cl">Bulan:</span>

@@ -10,6 +10,7 @@ type SessionInfo = {
   code: string
   arrows_per_round: number
   rounds_per_session: number
+  distance: number
   status: string
   total_arrows: number
 }
@@ -140,6 +141,27 @@ export default function JoinScoringPage() {
           .title { font-size: 36px; }
           .iconWrap { width: 80px; height: 80px; font-size: 32px; margin-bottom: 28px; }
         }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+          .card { padding: 24px 20px; margin: 12px; }
+          .title { font-size: 24px; }
+          .iconWrap { width: 50px; height: 50px; font-size: 20px; margin-bottom: 16px; }
+          .subtitle { font-size: 13px; margin-bottom: 24px; }
+          .form { gap: 16px; }
+          .label { font-size: 10px; margin-bottom: 6px; }
+          .input { padding: 12px 14px; font-size: 15px; }
+          .btn { padding: 14px; font-size: 14px; }
+          .btn-secondary { padding: 12px; font-size: 13px; }
+          .sessionInfo { padding: 16px; }
+          .sessionRow { padding: 8px 0; }
+          .sessionLabel { font-size: 11px; }
+          .sessionValue { font-size: 14px; }
+          .error { padding: 10px 12px; font-size: 12px; }
+          .infoBox { padding: 12px; font-size: 12px; }
+          .divider { margin: 16px 0; }
+          .footerText { font-size: 12px; }
+        }
       `}</style>
 
       <div style={S.layout}>
@@ -190,6 +212,10 @@ export default function JoinScoringPage() {
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Konfigurasi</span>
                     <span style={S.sessionValue}>{sessionInfo.arrows_per_round} Arrow × {sessionInfo.rounds_per_session} Rambahan</span>
+                  </div>
+                  <div style={S.sessionRow}>
+                    <span style={S.sessionLabel}>Jarak Target</span>
+                    <span style={S.sessionValue} style={{color:'#e65100'}}>{sessionInfo.distance}m</span>
                   </div>
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Total Arrow</span>

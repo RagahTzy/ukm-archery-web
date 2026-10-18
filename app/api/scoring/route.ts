@@ -166,22 +166,28 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await verifyAdmin(request)
   if ('error' in auth) return NextResponse.json({ error: auth.error }, { status: auth.status })
-  
+
   try {
     const body = await request.json()
-    const { name, arrows_per_round, rounds_per_session } = body
-    
+    const { name, arrows_per_round, rounds_per_session, distance } = body
+
     if (!name || !arrows_per_round || !rounds_per_session) {
       return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 })
     }
-    
+
     if (arrows_per_round < 1 || arrows_per_round > 12) {
       return NextResponse.json({ error: 'Arrow per Rambahan harus 1-12' }, { status: 400 })
     }
     if (rounds_per_session < 1 || rounds_per_session > 20) {
       return NextResponse.json({ error: 'Rambahan per Sesi harus 1-20' }, { status: 400 })
     }
-    
+    // Validate distance - must be multiple of 5, between 10-70
+    if (distance !== undefined) {
+      if (distance < 10 || distance > 70 || distance % 5 !== 0) {
+        return NextResponse.json({ error: 'Jarak harus kelipatan 5 meter (10-70)' }, { status: 400 })
+      }
+    }
+
     // Generate unique code
     let code = generateCode()
     let attempts = 0
@@ -191,7 +197,7 @@ export async function POST(request: NextRequest) {
       code = generateCode()
       attempts++
     }
-    
+
     const { data, error } = await auth.userSupabase
       .from('scoring_sessions')
       .insert({
@@ -199,14 +205,15 @@ export async function POST(request: NextRequest) {
         code,
         arrows_per_round,
         rounds_per_session,
+        distance: distance || 30,
         status: 'draft',
         created_by: auth.user.id
       })
       .select()
       .single()
-    
+
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    
+
     return NextResponse.json({ session: data }, { status: 201 })
   } catch (err) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
