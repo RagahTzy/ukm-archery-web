@@ -22,7 +22,7 @@ type ScoringSession = {
   code: string
   arrows_per_round: number
   rounds_per_session: number
-  distance: number
+  distance?: number
   status: 'draft' | 'active' | 'completed'
   created_at: string
   updated_at: string
@@ -256,7 +256,7 @@ export default function ScoringDetailPage() {
               </div>
               <div className="stat-item">
                 <span className="stat-label">Jarak Target</span>
-                <span className="stat-value" style={{color:'#e65100'}}>{session.distance}m</span>
+                <span className="stat-value" style={{color:'#e65100'}}>{session.distance ?? 30}m</span>
               </div>
             </div>
 

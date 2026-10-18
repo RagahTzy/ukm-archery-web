@@ -10,7 +10,7 @@ type SessionInfo = {
   code: string
   arrows_per_round: number
   rounds_per_session: number
-  distance: number
+  distance?: number
   status: string
   total_arrows: number
 }
@@ -215,7 +215,7 @@ export default function JoinScoringPage() {
                   </div>
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Jarak Target</span>
-                    <span style={S.sessionValue} style={{color:'#e65100'}}>{sessionInfo.distance}m</span>
+                    <span style={S.sessionValue} style={{color:'#e65100'}}>{sessionInfo.distance ?? 30}m</span>
                   </div>
                   <div style={S.sessionRow}>
                     <span style={S.sessionLabel}>Total Arrow</span>
