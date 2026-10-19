@@ -122,8 +122,8 @@ export async function GET(request: NextRequest) {
     console.log('[LEADERBOARD DEBUG] scoring_sessions value:', JSON.stringify(first.scoring_sessions, null, 2))
   }
 
-  // Calculate totals and rankings
-  const leaderboard = (participants || []).map((p: {
+  // Type for participant with correct scoring_sessions shape (single object from !inner join)
+  type ParticipantWithSession = {
     id: string;
     name: string;
     user_id: string;
@@ -137,9 +137,12 @@ export async function GET(request: NextRequest) {
       rounds_per_session: number;
       distance?: number;
       status: string
-    } | null;  // !inner join returns single object, not array
+    } | null;
     scoring_scores: Array<{ score: number }>
-  }) => {
+  }
+
+  // Calculate totals and rankings
+  const leaderboard = ((participants || []) as ParticipantWithSession[]).map((p) => {
     const scores = p.scoring_scores || []
     const session = p.scoring_sessions  // Direct access, not array
     const totalScore = scores.reduce((sum: number, s: { score: number }) => sum + s.score, 0)
