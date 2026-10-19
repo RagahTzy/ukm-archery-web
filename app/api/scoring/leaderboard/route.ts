@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Calculate totals and rankings
-  const leaderboard = ((participants || []) as ParticipantWithSession[]).map((p) => {
+  const leaderboard = ((participants || []) as unknown as ParticipantWithSession[]).map((p) => {
     const scores = p.scoring_scores || []
     const session = p.scoring_sessions  // Direct access, not array
     const totalScore = scores.reduce((sum: number, s: { score: number }) => sum + s.score, 0)
