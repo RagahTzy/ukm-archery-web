@@ -113,9 +113,13 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // DEBUG: Log first participant's session data
+  // DEBUG: Log raw response structure
+  console.log('[LEADERBOARD DEBUG] Total participants:', participants?.length)
   if (participants && participants.length > 0) {
-    console.log('[LEADERBOARD DEBUG] First participant session:', JSON.stringify(participants[0].scoring_sessions?.[0], null, 2))
+    const first = participants[0]
+    console.log('[LEADERBOARD DEBUG] First participant keys:', Object.keys(first))
+    console.log('[LEADERBOARD DEBUG] scoring_sessions type:', typeof first.scoring_sessions, Array.isArray(first.scoring_sessions))
+    console.log('[LEADERBOARD DEBUG] scoring_sessions value:', JSON.stringify(first.scoring_sessions, null, 2))
   }
 
   // Calculate totals and rankings
@@ -133,11 +137,11 @@ export async function GET(request: NextRequest) {
       rounds_per_session: number;
       distance?: number;
       status: string
-    }[];
+    } | null;  // !inner join returns single object, not array
     scoring_scores: Array<{ score: number }>
   }) => {
     const scores = p.scoring_scores || []
-    const session = p.scoring_sessions?.[0]
+    const session = p.scoring_sessions  // Direct access, not array
     const totalScore = scores.reduce((sum: number, s: { score: number }) => sum + s.score, 0)
     const totalArrows = scores.length
     const expectedArrows = session?.arrows_per_round * session?.rounds_per_session || 0
