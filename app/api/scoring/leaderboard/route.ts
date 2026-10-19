@@ -144,10 +144,10 @@ export async function GET(request: NextRequest) {
   // Calculate totals and rankings
   const leaderboard = ((participants || []) as unknown as ParticipantWithSession[]).map((p) => {
     const scores = p.scoring_scores || []
-    const session = p.scoring_sessions  // Direct access, not array
+    const session = p.scoring_sessions
     const totalScore = scores.reduce((sum: number, s: { score: number }) => sum + s.score, 0)
     const totalArrows = scores.length
-    const expectedArrows = session?.arrows_per_round * session?.rounds_per_session || 0
+    const expectedArrows = session ? session.arrows_per_round * session.rounds_per_session : 0
     const avgScore = totalArrows > 0 ? totalScore / totalArrows : 0
 
     return {
